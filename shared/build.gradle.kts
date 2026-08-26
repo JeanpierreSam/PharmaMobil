@@ -19,7 +19,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.example.pharmamobile.shared"
+       namespace = "pe.edu.upeu.pharmamobile.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     
@@ -64,4 +64,7 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+}
+compose.resources {
+    packageOfResClass = "pe.edu.upeu.pharmamobile.shared.generated.resources"
 }
