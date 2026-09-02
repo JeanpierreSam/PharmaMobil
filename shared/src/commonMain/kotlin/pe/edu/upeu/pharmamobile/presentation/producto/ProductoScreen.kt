@@ -28,7 +28,10 @@ import pe.edu.upeu.pharmamobile.presentation.components.PharmaHeader
  * entonces instancia un objeto del dominio [Producto].
  */
 @Composable
-fun ProductoScreen(modifier: Modifier = Modifier) {
+fun ProductoScreen(
+    modifier: Modifier = Modifier,
+    onProductoCreado: ((Producto) -> Unit)? = null
+) {
     // Estado observable de cada campo. Se guardan como String porque es
     // lo que entrega el usuario; la conversion a numero ocurre al validar.
     var nombre by remember { mutableStateOf("") }
@@ -108,6 +111,7 @@ fun ProductoScreen(modifier: Modifier = Modifier) {
                         ultimoProducto = resultado.producto
                         siguienteId++
                         mensaje = MensajesProducto.REGISTRO_EXITOSO
+                        onProductoCreado?.invoke(resultado.producto)
 
                         // Limpieza del formulario: Compose recompone y deja
                         // los campos listos para un nuevo registro.

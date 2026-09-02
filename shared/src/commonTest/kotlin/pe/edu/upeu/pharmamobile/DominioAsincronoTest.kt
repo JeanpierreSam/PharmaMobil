@@ -22,7 +22,7 @@ class DominioAsincronoTest {
     fun obtenerProductosDevuelveElCatalogo() = runTest {
         val productos = repositorio.obtenerProductos()
         println("Productos obtenidos: ${productos.size} -> ${productos.nombres()}")
-        assertEquals(expected = 3, actual = productos.size)
+        assertEquals(expected = 5, actual = productos.size)
     }
 
     @Test
