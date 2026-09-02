@@ -32,7 +32,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -163,13 +165,18 @@ fun ProductosMainScreen(
                         (productos.maxOfOrNull { it.id } ?: 0L) + 1L
                     }
 
+                    val scope = rememberCoroutineScope()
+
                     // Formulario de registro original reutilizado
                     ProductoScreen(
                         modifier = Modifier.fillMaxWidth(),
                         siguienteIdInicial = siguienteIdCalculado,
                         onProductoCreado = { productoNuevo ->
                             onProductoRegistrado(productoNuevo)
-                            mostrarFormularioRegistro = false
+                            scope.launch {
+                                kotlinx.coroutines.delay(1200)
+                                mostrarFormularioRegistro = false
+                            }
                         }
                     )
                 }
