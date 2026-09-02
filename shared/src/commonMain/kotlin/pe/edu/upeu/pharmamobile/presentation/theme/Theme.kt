@@ -43,6 +43,8 @@ fun PharmaMobilTheme(
 ) {
     val colorScheme = if (modoOscuro) DarkColorScheme else LightColorScheme
 
+    ConfiguracionBarraEstado(modoOscuro = modoOscuro)
+
     MaterialTheme(
         colorScheme = colorScheme,
         content = content
