@@ -30,6 +30,7 @@ import pe.edu.upeu.pharmamobile.presentation.components.PharmaHeader
 @Composable
 fun ProductoScreen(
     modifier: Modifier = Modifier,
+    siguienteIdInicial: Long = 1L,
     onProductoCreado: ((Producto) -> Unit)? = null
 ) {
     // Estado observable de cada campo. Se guardan como String porque es
@@ -46,7 +47,7 @@ fun ProductoScreen(
     var intentoRegistrar by remember { mutableStateOf(false) }
 
     // Identificador incremental para los productos que se van creando.
-    var siguienteId by remember { mutableStateOf(1L) }
+    var siguienteId by remember(siguienteIdInicial) { mutableStateOf(siguienteIdInicial) }
 
     // El resaltado en rojo solo se activa tras el primer intento.
     val errorNombre = intentoRegistrar && nombreEsInvalido(nombre)

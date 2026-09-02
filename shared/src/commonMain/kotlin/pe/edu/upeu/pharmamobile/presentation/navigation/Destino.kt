@@ -21,6 +21,6 @@ sealed class Destino(
     data object Pedidos : Destino("pedidos", "Pedidos", Icons.AutoMirrored.Filled.List)
 
     companion object {
-        val valores = listOf(Inicio, Productos, Clientes, Pedidos)
+        val valores get() = listOf(Inicio, Productos, Clientes, Pedidos)
     }
 }

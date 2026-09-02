@@ -103,7 +103,7 @@ fun ProductosMainScreen(
                 ) {
                     items(
                         items = productosFiltrados,
-                        key = { it.id }
+                        key = { "${it.id}_${it.nombre}" }
                     ) { producto ->
                         TarjetaProducto(producto = producto)
                     }
@@ -159,9 +159,14 @@ fun ProductosMainScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    val siguienteIdCalculado = remember(productos) {
+                        (productos.maxOfOrNull { it.id } ?: 0L) + 1L
+                    }
+
                     // Formulario de registro original reutilizado
                     ProductoScreen(
                         modifier = Modifier.fillMaxWidth(),
+                        siguienteIdInicial = siguienteIdCalculado,
                         onProductoCreado = { productoNuevo ->
                             onProductoRegistrado(productoNuevo)
                             mostrarFormularioRegistro = false
