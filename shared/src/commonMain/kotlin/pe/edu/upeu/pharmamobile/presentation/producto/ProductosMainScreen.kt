@@ -32,15 +32,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import pe.edu.upeu.pharmamobile.domain.model.Producto
+import pe.edu.upeu.pharmamobile.domain.query.UMBRAL_BAJO_STOCK
+import pe.edu.upeu.pharmamobile.domain.query.activos
+import pe.edu.upeu.pharmamobile.domain.query.bajoStock
+import pe.edu.upeu.pharmamobile.domain.query.inactivos
+import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
 
 /**
  * Pestañas de clasificación de inventario de productos.
@@ -61,14 +65,14 @@ fun ProductosMainScreen(
     onProductoRegistrado: (Producto) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var tabSeleccionada by remember { mutableIntStateOf(0) }
+    var tabSeleccionada by rememberSaveable { mutableIntStateOf(0) }
     var mostrarFormularioRegistro by remember { mutableStateOf(false) }
 
     val productosFiltrados = remember(productos, tabSeleccionada) {
         when (TabProducto.entries[tabSeleccionada]) {
-            TabProducto.ACTIVOS -> productos.filter { it.activo }
-            TabProducto.INACTIVOS -> productos.filter { !it.activo }
-            TabProducto.BAJO_STOCK -> productos.filter { it.stock <= 5 }
+            TabProducto.ACTIVOS -> productos.activos()
+            TabProducto.INACTIVOS -> productos.inactivos()
+            TabProducto.BAJO_STOCK -> productos.bajoStock()
         }
     }
 
@@ -165,18 +169,14 @@ fun ProductosMainScreen(
                         (productos.maxOfOrNull { it.id } ?: 0L) + 1L
                     }
 
-                    val scope = rememberCoroutineScope()
-
                     // Formulario de registro original reutilizado
                     ProductoScreen(
                         modifier = Modifier.fillMaxWidth(),
                         siguienteIdInicial = siguienteIdCalculado,
                         onProductoCreado = { productoNuevo ->
                             onProductoRegistrado(productoNuevo)
-                            scope.launch {
-                                kotlinx.coroutines.delay(1200)
-                                mostrarFormularioRegistro = false
-                            }
+                            // La confirmación ya la muestra el Snackbar global de App.kt.
+                            mostrarFormularioRegistro = false
                         }
                     )
                 }
@@ -187,7 +187,7 @@ fun ProductosMainScreen(
 
 @Composable
 private fun TarjetaProducto(producto: Producto) {
-    val esBajoStock = producto.stock <= 5
+    val esBajoStock = producto.stock <= UMBRAL_BAJO_STOCK
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -233,7 +233,7 @@ private fun TarjetaProducto(producto: Producto) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Precio: S/ ${producto.precio}",
+                    text = "Precio: ${producto.precio.aSoles()}",
                     style = MaterialTheme.typography.bodyMedium
                 )
 

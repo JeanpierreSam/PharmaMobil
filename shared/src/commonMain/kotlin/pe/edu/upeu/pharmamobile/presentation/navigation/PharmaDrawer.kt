@@ -17,17 +17,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * Drawer de navegación lateral para PharmaMobil.
+ * Contenido del drawer de navegación (marca + items) sin ningún "sheet" contenedor.
+ *
+ * Se usa desnudo dentro de [PharmaDrawerContent] (teléfono) y también dentro de un
+ * PermanentDrawerSheet en escritorio, para no anidar dos superficies de drawer distintas.
  */
 @Composable
-fun PharmaDrawerContent(
+fun PharmaDrawerContenidoInterno(
     destinoActual: Destino,
     onSeleccionarDestino: (Destino) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ModalDrawerSheet(
-        modifier = modifier
-    ) {
+    Column(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -64,5 +65,22 @@ fun PharmaDrawerContent(
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
         }
+    }
+}
+
+/**
+ * Drawer de navegación lateral para PharmaMobil (variante modal, teléfono).
+ */
+@Composable
+fun PharmaDrawerContent(
+    destinoActual: Destino,
+    onSeleccionarDestino: (Destino) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ModalDrawerSheet(modifier = modifier) {
+        PharmaDrawerContenidoInterno(
+            destinoActual = destinoActual,
+            onSeleccionarDestino = onSeleccionarDestino
+        )
     }
 }

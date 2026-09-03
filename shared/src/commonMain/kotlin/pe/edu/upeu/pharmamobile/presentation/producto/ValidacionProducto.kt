@@ -44,7 +44,8 @@ fun validarYCrearProducto(
     id: Long,
     nombre: String,
     precio: String,
-    stock: String
+    stock: String,
+    activo: Boolean = true
 ): ResultadoRegistro {
     val precioIngresado = precio.toDoubleOrNull()
     val stockIngresado = stock.toIntOrNull()
@@ -70,7 +71,8 @@ fun validarYCrearProducto(
                 id = id,
                 nombre = nombre.trim(),
                 precio = precioIngresado,
-                stock = stockIngresado
+                stock = stockIngresado,
+                activo = activo
             )
         )
     }

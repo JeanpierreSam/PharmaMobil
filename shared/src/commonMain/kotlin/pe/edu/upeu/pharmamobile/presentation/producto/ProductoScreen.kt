@@ -2,16 +2,19 @@ package pe.edu.upeu.pharmamobile.presentation.producto
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -19,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.presentation.components.CampoFormulario
 import pe.edu.upeu.pharmamobile.presentation.components.PharmaHeader
+import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
 
 /**
  * Pantalla de registro de productos de PharmaMobil.
@@ -38,6 +42,7 @@ fun ProductoScreen(
     var nombre by remember { mutableStateOf("") }
     var precio by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("") }
+    var activo by remember { mutableStateOf(true) }
 
     // Retroalimentacion del sistema y ultimo producto registrado.
     var mensaje by remember { mutableStateOf("") }
@@ -99,11 +104,29 @@ fun ProductoScreen(
             tipoTeclado = KeyboardType.Number
         )
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Producto activo",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Switch(
+                checked = activo,
+                onCheckedChange = { activo = it }
+            )
+        }
+
         Button(
             onClick = {
                 intentoRegistrar = true
 
-                when (val resultado = validarYCrearProducto(siguienteId, nombre, precio, stock)) {
+                when (
+                    val resultado =
+                        validarYCrearProducto(siguienteId, nombre, precio, stock, activo)
+                ) {
                     is ResultadoRegistro.Invalido -> {
                         mensaje = resultado.mensaje
                     }
@@ -119,6 +142,7 @@ fun ProductoScreen(
                         nombre = ""
                         precio = ""
                         stock = ""
+                        activo = true
                         intentoRegistrar = false
                     }
                 }
@@ -146,7 +170,7 @@ fun ProductoScreen(
         ultimoProducto?.let { producto ->
             Text(
                 text = "ID ${producto.id}  |  ${producto.nombre}\n" +
-                    "S/ ${producto.precio}  |  Stock: ${producto.stock}",
+                    "${producto.precio.aSoles()}  |  Stock: ${producto.stock}",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()

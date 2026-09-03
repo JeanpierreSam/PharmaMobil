@@ -18,6 +18,8 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
@@ -42,6 +44,7 @@ fun PharmaNavigationAdaptativa(
     onSeleccionarDestino: (Destino) -> Unit,
     modoOscuro: Boolean,
     onToggleModoOscuro: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -54,7 +57,7 @@ fun PharmaNavigationAdaptativa(
                 PermanentNavigationDrawer(
                     drawerContent = {
                         PermanentDrawerSheet {
-                            PharmaDrawerContent(
+                            PharmaDrawerContenidoInterno(
                                 destinoActual = destinoActual,
                                 onSeleccionarDestino = onSeleccionarDestino
                             )
@@ -67,6 +70,7 @@ fun PharmaNavigationAdaptativa(
                         onAbrirMenu = {},
                         modoOscuro = modoOscuro,
                         onToggleModoOscuro = onToggleModoOscuro,
+                        snackbarHostState = snackbarHostState,
                         content = content
                     )
                 }
@@ -97,6 +101,7 @@ fun PharmaNavigationAdaptativa(
                         onAbrirMenu = {},
                         modoOscuro = modoOscuro,
                         onToggleModoOscuro = onToggleModoOscuro,
+                        snackbarHostState = snackbarHostState,
                         modifier = Modifier.weight(1f),
                         content = content
                     )
@@ -130,6 +135,7 @@ fun PharmaNavigationAdaptativa(
                         },
                         modoOscuro = modoOscuro,
                         onToggleModoOscuro = onToggleModoOscuro,
+                        snackbarHostState = snackbarHostState,
                         content = content
                     )
                 }
@@ -146,11 +152,13 @@ private fun ScaffoldTopBarAdaptativo(
     onAbrirMenu: () -> Unit,
     modoOscuro: Boolean,
     onToggleModoOscuro: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(destinoActual.titulo) },
