@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,8 +40,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.domain.model.Producto
-import pe.edu.upeu.pharmamobile.domain.query.UMBRAL_BAJO_STOCK
 import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
@@ -57,61 +59,102 @@ enum class TabProducto(val titulo: String) {
 
 /**
  * Pantalla principal de Productos con Tabs y formulario de registro integrado.
+ *
+ * Sesion 05: ya no recibe `productos` ni `onProductoRegistrado` por parametro
+ * (prop drilling) -- resuelve su propio [ProductoViewModel] con Koin y pinta
+ * las 4 fases de [ProductoUiState.Fase].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductosMainScreen(
-    productos: List<Producto>,
-    onProductoRegistrado: (Producto) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ProductoViewModel = koinViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     var tabSeleccionada by rememberSaveable { mutableIntStateOf(0) }
     var mostrarFormularioRegistro by remember { mutableStateOf(false) }
 
-    val productosFiltrados = remember(productos, tabSeleccionada) {
-        when (TabProducto.entries[tabSeleccionada]) {
-            TabProducto.ACTIVOS -> productos.activos()
-            TabProducto.INACTIVOS -> productos.inactivos()
-            TabProducto.BAJO_STOCK -> productos.bajoStock()
-        }
-    }
-
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            PrimaryTabRow(selectedTabIndex = tabSeleccionada) {
-                TabProducto.entries.forEachIndexed { index, tab ->
-                    Tab(
-                        selected = tabSeleccionada == index,
-                        onClick = { tabSeleccionada = index },
-                        text = { Text(tab.titulo) }
+        when (val fase = uiState.fase) {
+            is ProductoUiState.Fase.Cargando -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is ProductoUiState.Fase.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No se pudo cargar el inventario: ${fase.detalle}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
 
-            if (productosFiltrados.isEmpty()) {
+            is ProductoUiState.Fase.SinProductos -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No hay productos en esta categoría.",
+                        text = "Todavía no hay productos registrados.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(
-                        items = productosFiltrados,
-                        key = { "${it.id}_${it.nombre}" }
-                    ) { producto ->
-                        TarjetaProducto(producto = producto)
+            }
+
+            is ProductoUiState.Fase.ConProductos -> {
+                val productosFiltrados = remember(uiState.productos, tabSeleccionada) {
+                    when (TabProducto.entries[tabSeleccionada]) {
+                        TabProducto.ACTIVOS -> uiState.productos.activos()
+                        TabProducto.INACTIVOS -> uiState.productos.inactivos()
+                        TabProducto.BAJO_STOCK -> uiState.productos.bajoStock()
+                    }
+                }
+
+                Column(modifier = Modifier.fillMaxSize()) {
+                    PrimaryTabRow(selectedTabIndex = tabSeleccionada) {
+                        TabProducto.entries.forEachIndexed { index, tab ->
+                            Tab(
+                                selected = tabSeleccionada == index,
+                                onClick = { tabSeleccionada = index },
+                                text = { Text(tab.titulo) }
+                            )
+                        }
+                    }
+
+                    if (productosFiltrados.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No hay productos en esta categoría.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(
+                                items = productosFiltrados,
+                                key = { "${it.id}_${it.nombre}" }
+                            ) { producto ->
+                                TarjetaProducto(producto = producto)
+                            }
+                        }
                     }
                 }
             }
@@ -165,16 +208,12 @@ fun ProductosMainScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    val siguienteIdCalculado = remember(productos) {
-                        (productos.maxOfOrNull { it.id } ?: 0L) + 1L
-                    }
-
-                    // Formulario de registro original reutilizado
+                    // Formulario de registro original reutilizado; comparte el mismo
+                    // ProductoViewModel (misma ViewModelStoreOwner) que esta pantalla.
                     ProductoScreen(
                         modifier = Modifier.fillMaxWidth(),
-                        siguienteIdInicial = siguienteIdCalculado,
-                        onProductoCreado = { productoNuevo ->
-                            onProductoRegistrado(productoNuevo)
+                        viewModel = viewModel,
+                        onProductoRegistrado = {
                             // La confirmación ya la muestra el Snackbar global de App.kt.
                             mostrarFormularioRegistro = false
                         }
@@ -187,7 +226,7 @@ fun ProductosMainScreen(
 
 @Composable
 private fun TarjetaProducto(producto: Producto) {
-    val esBajoStock = producto.stock <= UMBRAL_BAJO_STOCK
+    val esBajoStock = producto.requiereReposicion
 
     Card(
         modifier = Modifier.fillMaxWidth(),

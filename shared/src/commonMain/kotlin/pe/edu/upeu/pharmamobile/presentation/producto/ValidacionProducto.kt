@@ -1,7 +1,5 @@
 package pe.edu.upeu.pharmamobile.presentation.producto
 
-import pe.edu.upeu.pharmamobile.domain.model.Producto
-
 /**
  * Mensajes de error del formulario de registro de productos.
  *
@@ -18,65 +16,11 @@ object MensajesProducto {
 }
 
 /**
- * Resultado de intentar registrar un producto a partir del formulario.
+ * Helpers de resaltado en tiempo real para [ProductoScreen]. La decisión de
+ * si el formulario se puede enviar vive en `RegistrarProductoUseCase`
+ * (domain/usecase): estas funciones solo controlan el estado visual del
+ * campo mientras el usuario escribe.
  */
-sealed interface ResultadoRegistro {
-    /** El formulario es valido y se pudo construir el objeto del dominio. */
-    data class Exitoso(val producto: Producto) : ResultadoRegistro
-
-    /** Alguna regla de negocio no se cumplio; [mensaje] explica cual. */
-    data class Invalido(val mensaje: String) : ResultadoRegistro
-}
-
-/**
- * Valida los datos crudos del formulario y, solo si todas las reglas se
- * cumplen, instancia un [Producto].
- *
- * La evaluacion es estricta y en orden: nombre, conversion de precio,
- * rango de precio, conversion de stock, rango de stock. El objeto del
- * dominio se construye unicamente en el bloque `else`, porque [Producto]
- * valida en su `init` y lanzaria una excepcion con datos invalidos.
- *
- * Las conversiones usan `toDoubleOrNull()` y `toIntOrNull()` para que una
- * entrada no numerica devuelva `null` en lugar de romper la aplicacion.
- */
-fun validarYCrearProducto(
-    id: Long,
-    nombre: String,
-    precio: String,
-    stock: String,
-    activo: Boolean = true
-): ResultadoRegistro {
-    val precioIngresado = precio.toDoubleOrNull()
-    val stockIngresado = stock.toIntOrNull()
-
-    return when {
-        nombre.isBlank() ->
-            ResultadoRegistro.Invalido(MensajesProducto.NOMBRE_OBLIGATORIO)
-
-        precioIngresado == null ->
-            ResultadoRegistro.Invalido(MensajesProducto.PRECIO_NO_NUMERICO)
-
-        precioIngresado <= 0.0 ->
-            ResultadoRegistro.Invalido(MensajesProducto.PRECIO_NO_POSITIVO)
-
-        stockIngresado == null ->
-            ResultadoRegistro.Invalido(MensajesProducto.STOCK_NO_ENTERO)
-
-        stockIngresado < 0 ->
-            ResultadoRegistro.Invalido(MensajesProducto.STOCK_NEGATIVO)
-
-        else -> ResultadoRegistro.Exitoso(
-            Producto(
-                id = id,
-                nombre = nombre.trim(),
-                precio = precioIngresado,
-                stock = stockIngresado,
-                activo = activo
-            )
-        )
-    }
-}
 
 /** El nombre no puede estar vacio ni contener solo espacios. */
 fun nombreEsInvalido(nombre: String): Boolean = nombre.isBlank()

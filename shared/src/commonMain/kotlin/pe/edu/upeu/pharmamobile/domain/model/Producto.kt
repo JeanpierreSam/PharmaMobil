@@ -18,6 +18,9 @@ data class Producto(
             "El stock no puede ser negativo"
         }
     }
+    val requiereReposicion: Boolean
+        get() = stock <= STOCK_MINIMO
+
     fun verificarStock(cantidad: Int): Boolean{
         return stock >= cantidad
     }
@@ -37,5 +40,9 @@ data class Producto(
         return copy(
             stock=stock-cantidad
         )
+    }
+
+    companion object {
+        const val STOCK_MINIMO = 5
     }
 }

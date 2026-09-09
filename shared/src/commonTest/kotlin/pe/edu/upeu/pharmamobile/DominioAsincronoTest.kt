@@ -1,6 +1,6 @@
 package pe.edu.upeu.pharmamobile
 
-import pe.edu.upeu.pharmamobile.data.ProductoRepositorySimulado
+import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioEnMemoria
 import pe.edu.upeu.pharmamobile.demo.mostrarResultado
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.query.buscarPorId
@@ -16,11 +16,11 @@ import kotlin.test.assertTrue
 
 class DominioAsincronoTest {
 
-    private val repositorio = ProductoRepositorySimulado()
+    private val repositorio = ProductoRepositorioEnMemoria()
 
     @Test
     fun obtenerProductosDevuelveElCatalogo() = runTest {
-        val productos = repositorio.obtenerProductos()
+        val productos = repositorio.listar()
         println("Productos obtenidos: ${productos.size} -> ${productos.nombres()}")
         assertEquals(expected = 5, actual = productos.size)
     }
@@ -55,7 +55,7 @@ class DominioAsincronoTest {
 
     @Test
     fun consultasSobreColecciones() = runTest {
-        val productos = repositorio.obtenerProductos()
+        val productos = repositorio.listar()
 
         println("Disponibles: ${productos.disponibles().size}")
         println("Nombres: ${productos.nombres()}")
