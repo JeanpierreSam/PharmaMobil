@@ -7,18 +7,18 @@ Entregable 2 exigido por la Guía Autónoma (sección 6.13). Ejecutado el 2026-0
 
 | N.° | Componente | Acción | Resultado esperado | Resultado obtenido | Estado |
 |---:|---|---|---|---|---|
-| 1 | Navegación | Inicio → Productos → Clientes → Pedidos → Inicio | Todos los destinos funcionan sin errores | Verificado: Drawer navega a Productos correctamente ([02](img/02_drawer_4_destinos.png), [03](img/03_productos_activos_claro.png)) | ✅ |
-| 2 | Drawer | Abrir el menú desde Inicio | Muestra las 4 opciones y resalta el destino activo | Ítem "Inicio" resaltado con `primaryContainer` ([02](img/02_drawer_4_destinos.png)) | ✅ |
-| 3 | Productos | Pestaña Activos | Solo `activo == true` | Paracetamol, Ibuprofeno, Amoxicilina, Diclofenaco ([03](img/03_productos_activos_claro.png)) | ✅ |
-| 4 | Productos | Pestaña Inactivos | Solo `activo == false` | Solo Loratadina (inicial) ([04](img/04_productos_inactivos_claro.png)) | ✅ |
-| 5 | Productos | Pestaña Bajo Stock | `stock <= 5`, transversal a Activos/Inactivos | Amoxicilina (Activo, 5), Loratadina (Inactivo, 0), Diclofenaco (Activo, 3) — los tres a la vez ([08](img/08_bajo_stock_transversal_oscuro.png)) | ✅ |
-| 6 | Tema claro | Recorrer Inicio y Productos | Legibilidad y contraste adecuados | Verificado tras completar `ColorScheme` (`surfaceVariant`, `errorContainer`) ([01](img/01_inicio_claro.png), [03](img/03_productos_activos_claro.png)) | ✅ |
-| 7 | Tema oscuro | Recorrer Productos (3 pestañas) | Superficies y textos adaptados, no es una simple inversión | Verificado con paleta oscura M3 propia ([07](img/07_productos_inactivos_oscuro.png), [08](img/08_bajo_stock_transversal_oscuro.png)) | ✅ |
-| 8 | Registro válido | Vitamina C / 9.90 / 40, `Producto activo` = **desactivado** | Registro exitoso y aparece en Inactivos | Registrado y clasificado correctamente en Inactivos ([05](img/05_formulario_registro.png), [06](img/06_registro_producto_inactivo.png)) | ✅ |
-| 9 | Regla de stock | Amoxicilina, stock = 5 (frontera) | Se clasifica como Bajo Stock (`<=`, no `<`) | Aparece en Bajo Stock ([08](img/08_bajo_stock_transversal_oscuro.png)); cubierto además por prueba unitaria `stockIgualAlUmbralPerteneceABajoStock` | ✅ |
+| 1 | Navegación | Inicio → Productos → Clientes → Pedidos → Inicio | Todos los destinos funcionan sin errores | Verificado: Drawer navega a Productos correctamente ([02](img/S4/02_drawer_4_destinos.png), [03](img/S4/03_productos_activos_claro.png)) | ✅ |
+| 2 | Drawer | Abrir el menú desde Inicio | Muestra las 4 opciones y resalta el destino activo | Ítem "Inicio" resaltado con `primaryContainer` ([02](img/S4/02_drawer_4_destinos.png)) | ✅ |
+| 3 | Productos | Pestaña Activos | Solo `activo == true` | Paracetamol, Ibuprofeno, Amoxicilina, Diclofenaco ([03](img/S4/03_productos_activos_claro.png)) | ✅ |
+| 4 | Productos | Pestaña Inactivos | Solo `activo == false` | Solo Loratadina (inicial) ([04](img/S4/04_productos_inactivos_claro.png)) | ✅ |
+| 5 | Productos | Pestaña Bajo Stock | `stock <= 5`, transversal a Activos/Inactivos | Amoxicilina (Activo, 5), Loratadina (Inactivo, 0), Diclofenaco (Activo, 3) — los tres a la vez ([08](img/S4/08_bajo_stock_transversal_oscuro.png)) | ✅ |
+| 6 | Tema claro | Recorrer Inicio y Productos | Legibilidad y contraste adecuados | Verificado tras completar `ColorScheme` (`surfaceVariant`, `errorContainer`) ([01](img/S4/01_inicio_claro.png), [03](img/S4/03_productos_activos_claro.png)) | ✅ |
+| 7 | Tema oscuro | Recorrer Productos (3 pestañas) | Superficies y textos adaptados, no es una simple inversión | Verificado con paleta oscura M3 propia ([07](img/S4/07_productos_inactivos_oscuro.png), [08](img/S4/08_bajo_stock_transversal_oscuro.png)) | ✅ |
+| 8 | Registro válido | Vitamina C / 9.90 / 40, `Producto activo` = **desactivado** | Registro exitoso y aparece en Inactivos | Registrado y clasificado correctamente en Inactivos ([05](img/S4/05_formulario_registro.png), [06](img/S4/06_registro_producto_inactivo.png)) | ✅ |
+| 9 | Regla de stock | Amoxicilina, stock = 5 (frontera) | Se clasifica como Bajo Stock (`<=`, no `<`) | Aparece en Bajo Stock ([08](img/S4/08_bajo_stock_transversal_oscuro.png)); cubierto además por prueba unitaria `stockIgualAlUmbralPerteneceABajoStock` | ✅ |
 | 10 | Stock cero | Loratadina, 12.50, stock 0 | Se permite el valor y conserva su estado Inactivo | Loratadina en Inactivos y en Bajo Stock a la vez | ✅ |
 | 11 | Adaptabilidad | Ejecutar en teléfono, tablet y escritorio | El patrón de navegación corresponde al factor de forma | Verificado en teléfono (< 600dp, Drawer modal). **Pendiente**: tablet (600–840dp, `NavigationRail`) y escritorio (> 840dp, Drawer permanente) — requieren un AVD de tablet/tablet-plegable o el *Resizable Emulator* de Android Studio, no disponibles en este entorno | ⚠️ Pendiente |
-| 12 | Recursos | Abrir Inicio | El recurso compartido (`pharmamobil_logo`) se muestra correctamente | Logo visible en Inicio ([01](img/01_inicio_claro.png)) | ✅ |
+| 12 | Recursos | Abrir Inicio | El recurso compartido (`pharmamobil_logo`) se muestra correctamente | Logo visible en Inicio ([01](img/S4/01_inicio_claro.png)) | ✅ |
 
 Pruebas unitarias automatizadas (31 tests, `./gradlew :shared:testAndroidHostTest`, todas en verde):
 incluye la nueva `ConsultasProductosTest` (5 casos) que cubre la frontera `stock == 5` y la

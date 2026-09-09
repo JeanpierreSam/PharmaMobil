@@ -17,6 +17,3 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
-
-# docs/ queda local (evidencias, manuales); lo ya trackeado no se ve afectado
-docs/
