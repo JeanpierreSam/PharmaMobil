@@ -12,7 +12,7 @@ class ProductoRepositorioRest(private val api: ProductoApi) : ProductoRepository
     // se descarta en lugar de tumbar la lista completa.
     override suspend fun listar(): List<Producto> =
         ejecutarLlamada {
-            api.obtenerProductos().mapNotNull { runCatching { it.toDomain() }.getOrNull() }
+            api.listar().contenido.mapNotNull { runCatching { it.toDomain() }.getOrNull() }
         }.getOrThrow()
 
     override suspend fun registrar(nombre: String, precio: Double, stock: Int, activo: Boolean): Producto =
