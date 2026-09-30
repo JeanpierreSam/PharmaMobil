@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.ErrorRegistroProducto
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
@@ -38,7 +39,8 @@ class ProductoViewModel(
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update { it.copy(fase = ProductoUiState.Fase.Error(e.message ?: "Error desconocido")) }
+                    val mensaje = (e as? ErrorApiException)?.error?.let(::mensajeDe) ?: e.message ?: "Error desconocido"
+                    _uiState.update { it.copy(fase = ProductoUiState.Fase.Error(mensaje)) }
                 }
         }
     }
