@@ -67,6 +67,36 @@ por eso el proyecto compila contra la API 37 (`targetSdk` sigue en 36). AGP
 9.0.1 muestra un aviso porque está probado hasta la 36.1; el build, las pruebas
 y la app en el emulador funcionan.
 
+### Catálogo de endpoints (API de práctica v1)
+
+| Método | Ruta | Parámetros | Respuesta esperada | Errores | Uso en la app |
+|---|---|---|---|---|---|
+| GET | `/products` | `limit`, `offset` (query) | 200 · arreglo de productos | 5xx | `ProductoApi.obtenerProductos` |
+| GET | `/products/{id}` | `id` (ruta) | 200 · un producto | 400 si el id no existe (la API no responde 404) | `ProductoApi.obtenerProducto` |
+| POST | `/products` | cuerpo JSON | 201 · producto creado | 400 | Sesión 8 |
+| PUT | `/products/{id}` | `id` + cuerpo JSON | 200 · producto actualizado | 400 | Sesión 8 |
+| DELETE | `/products/{id}` | `id` (ruta) | 200 · confirmación | 400 | Sesión 8 |
+
+Con el traductor actual, el 400 de un id inexistente llega como
+`ErrorApi.Servidor`; la Sesión 8 agrega `Validacion` para los 400.
+
+### Diccionario de DTO
+
+| Campo JSON | Tipo Kotlin | Obligatorio | Por defecto | Campo en el dominio |
+|---|---|---|---|---|
+| `id` | `Int` | Sí | — | `Producto.id` (`Long`, con `toLong()`) |
+| `title` | `String` | Sí | — | `Producto.nombre` |
+| `price` | `Double` | Sí | — | `Producto.precio` |
+| `description` | `String` | No | `""` | No se mapea |
+| `images` | `List<String>` | No | `emptyList()` | No se mapea |
+| `category` (`categoria`) | `CategoriaDto?` | No | `null` | No se mapea |
+| `category.id` / `category.name` | `Int` / `String` | Sí | — | — |
+| — (no existe en la API) | — | — | `stock = 10`, `activo = true` | `Producto.stock`, `Producto.activo` |
+
+La API también envía `slug`, `creationAt`, `updatedAt` y, en `category`,
+`slug`, `image`, `creationAt` y `updatedAt`. El DTO no los declara y
+`ignoreUnknownKeys = true` hace que se ignoren.
+
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
 - `shared/androidMain`: implementación específica de Android (bindings nativos)
