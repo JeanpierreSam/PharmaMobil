@@ -14,25 +14,40 @@ sealed interface ErrorRegistroProducto {
 class RegistrarProductoUseCase(
     private val repository: ProductoRepository
 ) {
-    suspend fun invoke(nombre: String, precio: String, stock: String, activo: Boolean): Result<Producto> {
-        val precioValor = precio.toDoubleOrNull()
-        val stockValor = stock.toIntOrNull()
+    suspend operator fun invoke(nombre: String, precio: String, stock: String, activo: Boolean): Result<Producto> =
+        construirProducto(id = 0L, nombre, precio, stock, activo).fold(
+            onSuccess = { producto -> resultadoDe { repository.registrar(producto) } },
+            onFailure = { Result.failure(it) }
+        )
+}
 
-        val error = when {
-            nombre.isBlank() -> ErrorRegistroProducto.NombreObligatorio
-            precioValor == null -> ErrorRegistroProducto.PrecioNoNumerico
-            precioValor <= 0.0 -> ErrorRegistroProducto.PrecioNoPositivo
-            stockValor == null -> ErrorRegistroProducto.StockNoEntero
-            stockValor < 0 -> ErrorRegistroProducto.StockNegativo
-            else -> null
-        }
+/**
+ * Validación local previa al envío: solo lo que el modelo Producto no admite
+ * (vacío, no numérico, precio <= 0, stock negativo). Reglas como la longitud
+ * del nombre las decide PharmaSoft y llegan como ErrorApi.Validacion.
+ */
+internal fun construirProducto(
+    id: Long,
+    nombre: String,
+    precio: String,
+    stock: String,
+    activo: Boolean
+): Result<Producto> {
+    val precioValor = precio.toDoubleOrNull()
+    val stockValor = stock.toIntOrNull()
 
-        if (error != null) return Result.failure(IllegalArgumentException(error::class.simpleName))
-
-        return runCatching {
-            repository.registrar(
-                Producto(id = 0L, nombre = nombre.trim(), precio = precioValor!!, stock = stockValor!!, activo = activo)
-            )
-        }
+    val error = when {
+        nombre.isBlank() -> ErrorRegistroProducto.NombreObligatorio
+        precioValor == null -> ErrorRegistroProducto.PrecioNoNumerico
+        precioValor <= 0.0 -> ErrorRegistroProducto.PrecioNoPositivo
+        stockValor == null -> ErrorRegistroProducto.StockNoEntero
+        stockValor < 0 -> ErrorRegistroProducto.StockNegativo
+        else -> null
     }
+
+    if (error != null) return Result.failure(IllegalArgumentException(error::class.simpleName))
+
+    return Result.success(
+        Producto(id = id, nombre = nombre.trim(), precio = precioValor!!, stock = stockValor!!, activo = activo)
+    )
 }
