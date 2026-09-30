@@ -136,4 +136,27 @@ class ProductoViewModelTransicionesTest {
         )
         assertIs<Fase.ConProductos>(vm.uiState.value.fase)
     }
+
+    @Test
+    fun conflictoConFormularioAbierto_seMantieneHastaQueSeCorrigeUnCampo() = runTest(dispatcher) {
+        val repo = FakeProductoRepository(listOf(paracetamol)).apply {
+            fallaAlRegistrar = ErrorApiException(ErrorApi.Conflicto("Ya existe un producto con el nombre Paracetamol 500 mg"))
+        }
+        val vm = viewModelCon(repo)
+        advanceUntilIdle()
+
+        vm.nuevoProducto()
+        vm.onNombreChange("Paracetamol 500 mg")
+        vm.onPrecioChange("4.8")
+        vm.onStockChange("50")
+        vm.guardar()
+        advanceUntilIdle()
+
+        assertEquals(Operacion.Fallida("Ya existe un producto con el nombre Paracetamol 500 mg"), vm.uiState.value.operacion)
+        assertEquals(true, vm.uiState.value.formulario.abierto)   // el formulario no se cierra
+
+        vm.onNombreChange("Paracetamol 1 g")
+
+        assertEquals(Operacion.Inactiva, vm.uiState.value.operacion)
+    }
 }

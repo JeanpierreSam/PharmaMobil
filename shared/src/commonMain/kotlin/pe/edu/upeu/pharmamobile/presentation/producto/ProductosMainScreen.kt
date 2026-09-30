@@ -87,7 +87,9 @@ fun ProductosMainScreen(
     var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
 
     // Un solo canal de avisos: éxito de la operación o su fallo (409, sin conexión, etc.).
-    val aviso = uiState.mensajeExito ?: (uiState.operacion as? Operacion.Fallida)?.mensaje
+    // Con el formulario abierto el fallo se muestra dentro del diálogo, no en el Snackbar.
+    val falloOperacion = (uiState.operacion as? Operacion.Fallida)?.mensaje
+    val aviso = uiState.mensajeExito ?: falloOperacion.takeIf { !uiState.formulario.abierto }
     LaunchedEffect(aviso) {
         if (aviso != null) {
             snackbarHostState.showSnackbar(aviso)
@@ -264,7 +266,8 @@ fun ProductosMainScreen(
                         onStockChange = viewModel::onStockChange,
                         onActivoChange = viewModel::onActivoChange,
                         onGuardar = viewModel::guardar,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        errorOperacion = falloOperacion
                     )
                 }
             }

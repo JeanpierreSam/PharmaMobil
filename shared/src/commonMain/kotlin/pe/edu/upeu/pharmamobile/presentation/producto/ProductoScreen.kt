@@ -34,7 +34,8 @@ fun ProductoScreen(
     onStockChange: (String) -> Unit,
     onActivoChange: (Boolean) -> Unit,
     onGuardar: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    errorOperacion: String? = null
 ) {
     Column(
         modifier = modifier
@@ -85,6 +86,16 @@ fun ProductoScreen(
             Switch(
                 checked = formulario.activo,
                 onCheckedChange = onActivoChange
+            )
+        }
+
+        // Errores que no son de un campo (409 nombre duplicado, 404, sin conexión):
+        // dentro del diálogo, porque un Snackbar quedaría tapado por él.
+        if (errorOperacion != null) {
+            Text(
+                text = errorOperacion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
             )
         }
 

@@ -83,8 +83,14 @@ class ProductoViewModel(
     fun onStockChange(valor: String) = actualizarFormulario { it.copy(stock = valor, stockError = null) }
     fun onActivoChange(valor: Boolean) = actualizarFormulario { it.copy(activo = valor) }
 
+    // Al corregir un campo se descarta el error de la operación anterior (409, 404...).
     private fun actualizarFormulario(cambio: (FormularioProducto) -> FormularioProducto) {
-        _uiState.update { it.copy(formulario = cambio(it.formulario)) }
+        _uiState.update {
+            it.copy(
+                formulario = cambio(it.formulario),
+                operacion = if (it.operacion is Operacion.Fallida) Operacion.Inactiva else it.operacion
+            )
+        }
     }
 
     // --- Operaciones ------------------------------------------------------
