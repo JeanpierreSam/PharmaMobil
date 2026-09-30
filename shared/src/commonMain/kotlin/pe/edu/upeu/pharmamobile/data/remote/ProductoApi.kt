@@ -12,4 +12,7 @@ class ProductoApi(private val client: HttpClient) {
             parameter("limit", limite)
             parameter("offset", desplazamiento)
         }.body()
+
+    // Documenta GET /products/{id} en la GAA; en la Sesión 8 lo usa obtener(id).
+    suspend fun obtenerProducto(id: Int): ProductoDto = client.get("products/$id").body()
 }
