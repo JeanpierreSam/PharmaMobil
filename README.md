@@ -76,6 +76,48 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"   # JDK 21
 .\mvnw.cmd spring-boot:run      # Flyway crea el esquema en el primer arranque
 ```
 
+## Manejo de errores
+
+Las excepciones de Ktor se traducen **en un único punto**,
+`data/remote/EjecutarLlamada.kt`, a un tipo del dominio: `ErrorApi`
+(`domain/error`). Ninguna clase de `presentation` importa `io.ktor`, y el `when`
+de `mensajeDe` es exhaustivo: agregar un caso nuevo (por ejemplo, el 401 de la
+Sesión 10) obliga a darle mensaje.
+
+| Origen | `ErrorApi` | Qué ve el usuario |
+|---|---|---|
+| 400 con `validationErrors` | `Validacion(porCampo)` | Cada mensaje del servidor **debajo de su campo** (nombre, precio, stock) |
+| 404 | `NoEncontrado` | «No se encontró el recurso solicitado.» |
+| 409 (`ReglaNegocioException`) | `Conflicto(mensaje)` | El mensaje del servidor, p. ej. «Ya existe un producto con el nombre …» |
+| 5xx, JSON que no encaja con el DTO | `Servidor` | «El servidor no está disponible. Inténtalo más tarde.» |
+| Backend caído, sin red (`IOException`) | `SinConexion` | «Sin conexión con el servidor. Revisa tu red.» |
+| `HttpRequestTimeoutException` | `TiempoAgotado` | «El servidor tardó demasiado en responder.» |
+
+**Dónde se muestra.** Si falla la carga del listado, la pantalla pasa a
+`Fase.Error` con el botón **Reintentar**. Si falla una operación (crear,
+actualizar, dar de baja), la lista no desaparece: el estado va a
+`Operacion.Fallida`. Con el formulario abierto, el mensaje aparece dentro del
+formulario; si no, en un Snackbar. Los errores de validación nunca llevan a
+`Fase.Error`.
+
+**Validación local y del servidor.** La app rechaza antes de enviar lo que el
+modelo `Producto` no admite (campo vacío, no numérico, precio ≤ 0, stock
+negativo), con los mismos textos que PharmaSoft. Las reglas propias del backend
+(nombre de 3 a 150 caracteres, precio mínimo 0.01, nombre único) llegan como
+`Validacion` o `Conflicto`.
+
+**Particularidades de PharmaSoft.** El DELETE es una baja lógica
+(`estado = false`): un segundo DELETE sobre el mismo producto responde **409**
+(«…ya se encuentra inactivo»), no 404. Un PUT debe llevar los cinco campos; si
+falta alguno, responde 400.
+
+**Cancelación.** `ejecutarLlamada` y `resultadoDe` (casos de uso) relanzan la
+`CancellationException` en lugar de convertirla en error. Cuando la Activity se
+destruye, `viewModelScope` se cancela y la operación en curso termina sin
+mostrar nada ni enviar la petición pendiente. Cambiar de sección en el menú no
+cancela: el ViewModel vive mientras vive la Activity y la operación termina
+normalmente. Esto lo cubre la prueba `CancelacionUseCaseTest`.
+
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
 - `shared/androidMain`: implementación específica de Android (bindings nativos)
