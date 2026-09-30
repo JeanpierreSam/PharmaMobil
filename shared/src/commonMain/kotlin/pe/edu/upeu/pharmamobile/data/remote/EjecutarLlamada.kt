@@ -1,10 +1,14 @@
 package pe.edu.upeu.pharmamobile.data.remote
 
+import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
+import io.ktor.serialization.ContentConvertException
 import kotlinx.coroutines.CancellationException
 import kotlinx.io.IOException
+import kotlinx.serialization.SerializationException
+import pe.edu.upeu.pharmamobile.data.remote.dto.ErrorResponseDto
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 
@@ -21,10 +25,19 @@ suspend fun <T> ejecutarLlamada(bloque: suspend () -> T): Result<T> =
         Result.failure(ErrorApiException(ErrorApi.TiempoAgotado))
     } catch (e: IOException) {
         Result.failure(ErrorApiException(ErrorApi.SinConexion))
+    } catch (e: ContentConvertException) {
+        // Hallazgo de la S7: un JSON que no encaja con el DTO llegaba sin traducir a la UI.
+        Result.failure(ErrorApiException(ErrorApi.Servidor))
+    } catch (e: SerializationException) {
+        Result.failure(ErrorApiException(ErrorApi.Servidor))
     }
 
-private fun traducirCliente(e: ClientRequestException): ErrorApi =
-    when (e.response.status.value) {
+private suspend fun traducirCliente(e: ClientRequestException): ErrorApi {
+    val cuerpo = runCatching { e.response.body<ErrorResponseDto>() }.getOrNull()
+    return when (e.response.status.value) {
+        400 -> ErrorApi.Validacion(cuerpo?.validationErrors.orEmpty())
         404 -> ErrorApi.NoEncontrado
-        else -> ErrorApi.Servidor          // la S8 agrega 400 -> Validacion y 409 -> Conflicto
+        409 -> ErrorApi.Conflicto(cuerpo?.message ?: "Operación no permitida")
+        else -> ErrorApi.Servidor
     }
+}
