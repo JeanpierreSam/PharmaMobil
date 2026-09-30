@@ -17,6 +17,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,9 +30,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,6 +54,8 @@ import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
+import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
+import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
 import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
 
 /**
@@ -58,45 +68,61 @@ enum class TabProducto(val titulo: String) {
 }
 
 /**
- * Pantalla principal de Productos con Tabs y formulario de registro integrado.
+ * Pantalla principal de Productos: listado por pestañas y CRUD contra PharmaSoft.
  *
- * Sesion 05: ya no recibe `productos` ni `onProductoRegistrado` por parametro
- * (prop drilling) -- resuelve su propio [ProductoViewModel] con Koin y pinta
- * las 4 fases de [ProductoUiState.Fase].
+ * Sesión 08: el `when` sobre [Fase] es exhaustivo (sin else) y las operaciones
+ * se reflejan en [Operacion], así que guardar o eliminar no oculta la lista.
+ * Los resultados (éxito o fallo) se muestran en el Snackbar de la app.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductosMainScreen(
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     viewModel: ProductoViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var tabSeleccionada by rememberSaveable { mutableIntStateOf(0) }
-    var mostrarFormularioRegistro by remember { mutableStateOf(false) }
+    var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
+
+    // Un solo canal de avisos: éxito de la operación o su fallo (409, sin conexión, etc.).
+    val aviso = uiState.mensajeExito ?: (uiState.operacion as? Operacion.Fallida)?.mensaje
+    LaunchedEffect(aviso) {
+        if (aviso != null) {
+            snackbarHostState.showSnackbar(aviso)
+            viewModel.mensajeMostrado()
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         when (val fase = uiState.fase) {
-            is ProductoUiState.Fase.Cargando -> {
+            Fase.Cargando -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
 
-            is ProductoUiState.Fase.Error -> {
-                Box(
+            is Fase.Error -> {
+                Column(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
-                    contentAlignment = Alignment.Center
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "No se pudo cargar el inventario: ${fase.detalle}",
+                        text = "No se pudo cargar el inventario: ${fase.mensaje}",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = viewModel::cargarProductos) {
+                        Text("Reintentar")
+                    }
                 }
             }
 
-            is ProductoUiState.Fase.SinProductos -> {
+            Fase.SinProductos -> {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center
@@ -109,12 +135,12 @@ fun ProductosMainScreen(
                 }
             }
 
-            is ProductoUiState.Fase.ConProductos -> {
-                val productosFiltrados = remember(uiState.productos, tabSeleccionada) {
+            is Fase.ConProductos -> {
+                val productosFiltrados = remember(fase.productos, tabSeleccionada) {
                     when (TabProducto.entries[tabSeleccionada]) {
-                        TabProducto.ACTIVOS -> uiState.productos.activos()
-                        TabProducto.INACTIVOS -> uiState.productos.inactivos()
-                        TabProducto.BAJO_STOCK -> uiState.productos.bajoStock()
+                        TabProducto.ACTIVOS -> fase.productos.activos()
+                        TabProducto.INACTIVOS -> fase.productos.inactivos()
+                        TabProducto.BAJO_STOCK -> fase.productos.bajoStock()
                     }
                 }
 
@@ -145,14 +171,19 @@ fun ProductosMainScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(
                                 items = productosFiltrados,
-                                key = { "${it.id}_${it.nombre}" }
+                                key = { it.id }
                             ) { producto ->
-                                TarjetaProducto(producto = producto)
+                                TarjetaProducto(
+                                    producto = producto,
+                                    accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
+                                    onEditar = { viewModel.editar(producto.id) },
+                                    onEliminar = { productoAEliminar = producto }
+                                )
                             }
                         }
                     }
@@ -161,7 +192,7 @@ fun ProductosMainScreen(
         }
 
         FloatingActionButton(
-            onClick = { mostrarFormularioRegistro = true },
+            onClick = viewModel::nuevoProducto,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
@@ -173,8 +204,25 @@ fun ProductosMainScreen(
         }
     }
 
-    if (mostrarFormularioRegistro) {
-        Dialog(onDismissRequest = { mostrarFormularioRegistro = false }) {
+    productoAEliminar?.let { producto ->
+        AlertDialog(
+            onDismissRequest = { productoAEliminar = null },
+            title = { Text("Dar de baja") },
+            text = { Text("¿Dar de baja \"${producto.nombre}\"? Pasará a la pestaña Inactivos.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.eliminar(producto.id)
+                    productoAEliminar = null
+                }) { Text("Dar de baja") }
+            },
+            dismissButton = {
+                TextButton(onClick = { productoAEliminar = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (uiState.formulario.abierto) {
+        Dialog(onDismissRequest = viewModel::cerrarFormulario) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,11 +242,11 @@ fun ProductosMainScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Nuevo Producto",
+                            text = if (uiState.formulario.esEdicion) "Editar Producto" else "Nuevo Producto",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        IconButton(onClick = { mostrarFormularioRegistro = false }) {
+                        IconButton(onClick = viewModel::cerrarFormulario) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Cerrar"
@@ -208,15 +256,15 @@ fun ProductosMainScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Formulario de registro original reutilizado; comparte el mismo
-                    // ProductoViewModel (misma ViewModelStoreOwner) que esta pantalla.
                     ProductoScreen(
-                        modifier = Modifier.fillMaxWidth(),
-                        viewModel = viewModel,
-                        onProductoRegistrado = {
-                            // La confirmación ya la muestra el Snackbar global de App.kt.
-                            mostrarFormularioRegistro = false
-                        }
+                        formulario = uiState.formulario,
+                        guardando = uiState.guardando,
+                        onNombreChange = viewModel::onNombreChange,
+                        onPrecioChange = viewModel::onPrecioChange,
+                        onStockChange = viewModel::onStockChange,
+                        onActivoChange = viewModel::onActivoChange,
+                        onGuardar = viewModel::guardar,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -225,7 +273,12 @@ fun ProductosMainScreen(
 }
 
 @Composable
-private fun TarjetaProducto(producto: Producto) {
+private fun TarjetaProducto(
+    producto: Producto,
+    accionesHabilitadas: Boolean,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
     val esBajoStock = producto.requiereReposicion
 
     Card(
@@ -241,7 +294,7 @@ private fun TarjetaProducto(producto: Producto) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -251,7 +304,8 @@ private fun TarjetaProducto(producto: Producto) {
                 Text(
                     text = producto.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Text(
@@ -261,27 +315,36 @@ private fun TarjetaProducto(producto: Producto) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.error
-                    }
+                    },
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Precio: ${producto.precio.aSoles()}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Precio: ${producto.precio.aSoles()}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Stock: ${producto.stock}" + if (esBajoStock) " (Bajo Stock)" else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (esBajoStock) FontWeight.Bold else FontWeight.Normal,
+                        color = if (esBajoStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
-                Text(
-                    text = "Stock: ${producto.stock}" + if (esBajoStock) " (Bajo Stock)" else "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (esBajoStock) FontWeight.Bold else FontWeight.Normal,
-                    color = if (esBajoStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                )
+                IconButton(onClick = onEditar, enabled = accionesHabilitadas) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar ${producto.nombre}")
+                }
+                IconButton(onClick = onEliminar, enabled = accionesHabilitadas) {
+                    Icon(Icons.Default.Delete, contentDescription = "Dar de baja ${producto.nombre}")
+                }
             }
         }
     }
