@@ -34,8 +34,8 @@ class ConsultasProductosTest {
 
     @Test
     fun stockIgualAlUmbralPerteneceABajoStock() {
-        // Frontera de la regla estricta stock <= 5.
-        assertTrue(amoxicilina.stock == UMBRAL_BAJO_STOCK)
+        // Frontera de la regla estricta stock <= Producto.STOCK_MINIMO.
+        assertTrue(amoxicilina.stock == Producto.STOCK_MINIMO)
         assertTrue(inventario.bajoStock().contains(amoxicilina))
     }
 

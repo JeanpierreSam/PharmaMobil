@@ -1,4 +1,4 @@
-package pe.edu.upeu.pharmamobile.data
+package pe.edu.upeu.pharmamobile.data.repository
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -7,11 +7,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import pe.edu.upeu.pharmamobile.domain.model.Producto
+import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.result.ResultadoProductos
+import kotlin.random.Random
 
-class ProductoRepositorySimulado {
+class ProductoRepositorioEnMemoria : ProductoRepository {
 
-    // Lista inicial del avance autónomo S4 (Reto 02)
     private val productosIniciales = listOf(
         Producto(id = 1L, nombre = "Paracetamol", precio = 15.50, stock = 100, activo = true),
         Producto(id = 2L, nombre = "Ibuprofeno", precio = 18.90, stock = 50, activo = true),
@@ -23,23 +24,20 @@ class ProductoRepositorySimulado {
     private val _productosFlow = MutableStateFlow(productosIniciales)
     val productosFlow: StateFlow<List<Producto>> = _productosFlow.asStateFlow()
 
-    fun obtenerProductosSync(): List<Producto> {
+    override suspend fun registrar(nombre: String, precio: Double, stock: Int, activo: Boolean): Producto {
+        delay(Random.nextLong(300, 800))
+        val siguienteId = (_productosFlow.value.maxOfOrNull { it.id } ?: 0L) + 1L
+        val nuevo = Producto(id = siguienteId, nombre = nombre, precio = precio, stock = stock, activo = activo)
+        _productosFlow.value = _productosFlow.value + nuevo
+        return nuevo
+    }
+
+    override suspend fun listar(): List<Producto> {
+        delay(Random.nextLong(300, 800))
         return _productosFlow.value
     }
 
-    fun agregarProducto(producto: Producto) {
-        _productosFlow.value = _productosFlow.value + producto
-    }
-
-    suspend fun obtenerProductos(): List<Producto> {
-        delay(300)
-        return _productosFlow.value
-    }
-
-    suspend fun buscarProducto(id: Long): Producto? {
-        delay(100)
-        return _productosFlow.value.find { it.id == id }
-    }
+    // --- Ejercicios de Flow de la Sesión 03, conservados porque DominioAsincronoTest los ejercita ---
 
     fun observarEstados(): Flow<String> = flow {
         emit("Iniciando")
@@ -47,7 +45,6 @@ class ProductoRepositorySimulado {
         emit("Finalizado")
     }
 
-    // Flow finito para demostración y pruebas asíncronas
     fun observarProductos(): Flow<List<Producto>> = flow {
         emit(emptyList())
         delay(100)

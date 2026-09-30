@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,24 +20,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import pe.edu.upeu.pharmamobile.domain.model.Producto
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.presentation.components.CampoFormulario
 import pe.edu.upeu.pharmamobile.presentation.components.PharmaHeader
-import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
 
 /**
  * Pantalla de registro de productos de PharmaMobil.
  *
- * Sesion 03: formulario interactivo construido con Compose Multiplatform.
- * Captura los datos como texto, los valida de forma estricta y solo
- * entonces instancia un objeto del dominio [Producto].
+ * Sesion 05: el formulario ya no valida ni construye el dominio por su
+ * cuenta -- delega en [ProductoViewModel.registrar], que a su vez usa
+ * `RegistrarProductoUseCase`. Aqui solo queda estado transitorio de UI
+ * (el texto que el usuario va escribiendo) y el resaltado en tiempo real.
  */
 @Composable
 fun ProductoScreen(
     modifier: Modifier = Modifier,
-    siguienteIdInicial: Long = 1L,
-    onProductoCreado: ((Producto) -> Unit)? = null
+    viewModel: ProductoViewModel = koinViewModel(),
+    onProductoRegistrado: (() -> Unit)? = null
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     // Estado observable de cada campo. Se guardan como String porque es
     // lo que entrega el usuario; la conversion a numero ocurre al validar.
     var nombre by remember { mutableStateOf("") }
@@ -44,20 +48,25 @@ fun ProductoScreen(
     var stock by remember { mutableStateOf("") }
     var activo by remember { mutableStateOf(true) }
 
-    // Retroalimentacion del sistema y ultimo producto registrado.
-    var mensaje by remember { mutableStateOf("") }
-    var ultimoProducto by remember { mutableStateOf<Producto?>(null) }
-
     // Evita mostrar errores antes de que el usuario pulse REGISTRAR.
     var intentoRegistrar by remember { mutableStateOf(false) }
-
-    // Identificador incremental para los productos que se van creando.
-    var siguienteId by remember(siguienteIdInicial) { mutableStateOf(siguienteIdInicial) }
 
     // El resaltado en rojo solo se activa tras el primer intento.
     val errorNombre = intentoRegistrar && nombreEsInvalido(nombre)
     val errorPrecio = intentoRegistrar && precioEsInvalido(precio)
     val errorStock = intentoRegistrar && stockEsInvalido(stock)
+
+    LaunchedEffect(uiState.mensaje) {
+        if (uiState.mensaje == MensajesProducto.REGISTRO_EXITOSO) {
+            // Limpieza del formulario tras un registro exitoso.
+            nombre = ""
+            precio = ""
+            stock = ""
+            activo = true
+            intentoRegistrar = false
+            onProductoRegistrado?.invoke()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -122,38 +131,17 @@ fun ProductoScreen(
         Button(
             onClick = {
                 intentoRegistrar = true
-
-                when (
-                    val resultado =
-                        validarYCrearProducto(siguienteId, nombre, precio, stock, activo)
-                ) {
-                    is ResultadoRegistro.Invalido -> {
-                        mensaje = resultado.mensaje
-                    }
-
-                    is ResultadoRegistro.Exitoso -> {
-                        ultimoProducto = resultado.producto
-                        siguienteId++
-                        mensaje = MensajesProducto.REGISTRO_EXITOSO
-                        onProductoCreado?.invoke(resultado.producto)
-
-                        // Limpieza del formulario: Compose recompone y deja
-                        // los campos listos para un nuevo registro.
-                        nombre = ""
-                        precio = ""
-                        stock = ""
-                        activo = true
-                        intentoRegistrar = false
-                    }
-                }
+                viewModel.registrar(nombre, precio, stock, activo)
             },
+            enabled = !uiState.guardando,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("REGISTRAR")
+            Text(if (uiState.guardando) "GUARDANDO..." else "REGISTRAR")
         }
 
-        // Text reactivo: se recompone cada vez que cambia el estado mensaje.
-        if (mensaje.isNotBlank()) {
+        // Text reactivo: se recompone cada vez que cambia el mensaje del ViewModel.
+        val mensaje = uiState.mensaje
+        if (!mensaje.isNullOrBlank()) {
             Text(
                 text = mensaje,
                 style = MaterialTheme.typography.bodyLarge,
@@ -162,16 +150,6 @@ fun ProductoScreen(
                 } else {
                     MaterialTheme.colorScheme.error
                 },
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        ultimoProducto?.let { producto ->
-            Text(
-                text = "ID ${producto.id}  |  ${producto.nombre}\n" +
-                    "${producto.precio.aSoles()}  |  Stock: ${producto.stock}",
-                style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
