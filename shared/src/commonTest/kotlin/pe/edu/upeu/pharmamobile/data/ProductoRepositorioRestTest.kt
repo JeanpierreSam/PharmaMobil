@@ -25,7 +25,7 @@ class ProductoRepositorioRestTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
-        return ProductoRepositorioRest(ProductoApi(crearHttpClient(engine, "http://localhost/api/v1/")))
+        return ProductoRepositorioRest(ProductoApi(crearHttpClient(engine, "http://localhost/api/v1/")), categoriaPorDefecto = 1L)
     }
 
     @Test

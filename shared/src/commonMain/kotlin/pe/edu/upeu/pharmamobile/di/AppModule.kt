@@ -16,7 +16,7 @@ import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
 val dataModule = module {
     single { crearHttpClient(get(), get(named(URL_BASE))) }
     single { ProductoApi(get()) }
-    single<ProductoRepository> { ProductoRepositorioRest(get()) }
+    single<ProductoRepository> { ProductoRepositorioRest(get(), CATEGORIA_POR_DEFECTO) }
 }
 
 val domainModule = module {
@@ -26,6 +26,9 @@ val domainModule = module {
 val presentationModule = module {
     viewModelOf(::ProductoViewModel)
 }
+
+/** Categoría «Analgésicos» (id 1) creada en PharmaSoft; el dominio aún no maneja categorías. */
+const val CATEGORIA_POR_DEFECTO = 1L
 
 /** Nombre con el que cada plataforma registra la URL base de PharmaSoft. */
 const val URL_BASE = "urlBase"

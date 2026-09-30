@@ -7,33 +7,13 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import pe.edu.upeu.pharmamobile.domain.model.Producto
-import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
+import pe.edu.upeu.pharmamobile.data.repository.FakeProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-
-private class RepositorioFalsoVacio : ProductoRepository {
-    override suspend fun registrar(nombre: String, precio: Double, stock: Int, activo: Boolean) =
-        error("no usado en esta prueba")
-    override suspend fun listar(): List<Producto> = emptyList()
-}
-
-private class RepositorioFalsoConProductos : ProductoRepository {
-    override suspend fun registrar(nombre: String, precio: Double, stock: Int, activo: Boolean) =
-        error("no usado en esta prueba")
-    override suspend fun listar(): List<Producto> = listOf(
-        Producto(1L, "Paracetamol", 15.50, 100, true)
-    )
-}
-
-private class RepositorioFalsoConError : ProductoRepository {
-    override suspend fun registrar(nombre: String, precio: Double, stock: Int, activo: Boolean) =
-        error("no usado en esta prueba")
-    override suspend fun listar(): List<Producto> = throw IllegalStateException("Sin conexión con el servidor")
-}
 
 /**
  * Pruebas de flujo de la Sesion 05 (Reto 02, Seccion 4): verifican que el
@@ -60,7 +40,7 @@ class ProductoViewModelTest {
 
     @Test
     fun repositorioVacio_produceSinProductos() = runTest {
-        val repo = RepositorioFalsoVacio()
+        val repo = FakeProductoRepository()
         val vm = ProductoViewModel(RegistrarProductoUseCase(repo), repo)
         vm.cargarProductos()
         assertIs<ProductoUiState.Fase.SinProductos>(vm.uiState.value.fase)
@@ -68,7 +48,7 @@ class ProductoViewModelTest {
 
     @Test
     fun repositorioConProductos_produceConProductos() = runTest {
-        val repo = RepositorioFalsoConProductos()
+        val repo = FakeProductoRepository(listOf(Producto(1L, "Paracetamol", 15.50, 100, true)))
         val vm = ProductoViewModel(RegistrarProductoUseCase(repo), repo)
         vm.cargarProductos()
         assertIs<ProductoUiState.Fase.ConProductos>(vm.uiState.value.fase)
@@ -76,7 +56,7 @@ class ProductoViewModelTest {
 
     @Test
     fun repositorioQueFalla_produceError() = runTest {
-        val repo = RepositorioFalsoConError()
+        val repo = FakeProductoRepository().apply { fallaAlListar = IllegalStateException("Sin conexión con el servidor") }
         val vm = ProductoViewModel(RegistrarProductoUseCase(repo), repo)
         vm.cargarProductos()
         assertIs<ProductoUiState.Fase.Error>(vm.uiState.value.fase)
@@ -84,7 +64,7 @@ class ProductoViewModelTest {
 
     @Test
     fun precioCero_dejaMensajeDeErrorSinLlamarAlRepositorio() = runTest {
-        val repo = RepositorioFalsoVacio()
+        val repo = FakeProductoRepository()
         val vm = ProductoViewModel(RegistrarProductoUseCase(repo), repo)
         vm.registrar(nombre = "Ibuprofeno", precio = "0", stock = "10", activo = true)
         assertEquals(MensajesProducto.PRECIO_NO_POSITIVO, vm.uiState.value.mensaje)

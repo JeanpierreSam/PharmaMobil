@@ -30,7 +30,9 @@ class RegistrarProductoUseCase(
         if (error != null) return Result.failure(IllegalArgumentException(error::class.simpleName))
 
         return runCatching {
-            repository.registrar(nombre.trim(), precioValor!!, stockValor!!, activo)
+            repository.registrar(
+                Producto(id = 0L, nombre = nombre.trim(), precio = precioValor!!, stock = stockValor!!, activo = activo)
+            )
         }
     }
 }
