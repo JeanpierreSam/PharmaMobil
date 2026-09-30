@@ -10,17 +10,26 @@ import pe.edu.upeu.pharmamobile.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobile.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioRest
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
+import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ListarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
 
 val dataModule = module {
     single { crearHttpClient(get(), get(named(URL_BASE))) }
     single { ProductoApi(get()) }
+    // ProductoRepositorioEnMemoria sigue disponible como alternativa para pruebas.
     single<ProductoRepository> { ProductoRepositorioRest(get(), CATEGORIA_POR_DEFECTO) }
 }
 
 val domainModule = module {
+    factoryOf(::ListarProductosUseCase)
+    factoryOf(::ObtenerProductoUseCase)
     factoryOf(::RegistrarProductoUseCase)
+    factoryOf(::ActualizarProductoUseCase)
+    factoryOf(::EliminarProductoUseCase)
 }
 
 val presentationModule = module {
