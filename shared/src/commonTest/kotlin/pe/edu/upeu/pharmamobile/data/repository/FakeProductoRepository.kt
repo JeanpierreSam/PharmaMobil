@@ -45,13 +45,20 @@ class FakeProductoRepository(
 
     override suspend fun actualizar(producto: Producto): Producto {
         esperarOFallar(fallaAlActualizar)
-        productos.replaceAll { if (it.id == producto.id) producto else it }
+        reemplazar { if (it.id == producto.id) producto else it }
         return producto
     }
 
     override suspend fun eliminar(id: Long) {
         esperarOFallar(fallaAlEliminar)
-        productos.replaceAll { if (it.id == id) it.copy(activo = false) else it }
+        reemplazar { if (it.id == id) it.copy(activo = false) else it }
+    }
+
+    // MutableList.replaceAll es API de Java: en Kotlin/Native requiere opt-in experimental.
+    private fun reemplazar(transformar: (Producto) -> Producto) {
+        val nuevos = productos.map(transformar)
+        productos.clear()
+        productos.addAll(nuevos)
     }
 
     private suspend fun esperarOFallar(falla: Throwable?) {

@@ -15,6 +15,7 @@ import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ListarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
 
 val dataModule = module {
@@ -34,6 +35,7 @@ val domainModule = module {
 
 val presentationModule = module {
     viewModelOf(::ProductoViewModel)
+    viewModelOf(::DetalleProductoViewModel)
 }
 
 /** Categoría «Analgésicos» (id 1) creada en PharmaSoft; el dominio aún no maneja categorías. */
