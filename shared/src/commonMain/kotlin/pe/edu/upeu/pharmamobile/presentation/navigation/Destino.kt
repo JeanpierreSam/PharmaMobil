@@ -3,6 +3,7 @@ package pe.edu.upeu.pharmamobile.presentation.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -19,8 +20,9 @@ sealed class Destino(
     data object Productos : Destino("productos", "Productos", Icons.Default.ShoppingCart)
     data object Clientes : Destino("clientes", "Clientes", Icons.Default.Person)
     data object Pedidos : Destino("pedidos", "Pedidos", Icons.AutoMirrored.Filled.List)
+    data object AcercaDe : Destino("acerca-de", "Acerca de", Icons.Default.Info)
 
     companion object {
-        val valores get() = listOf(Inicio, Productos, Clientes, Pedidos)
+        val valores get() = listOf(Inicio, Productos, Clientes, Pedidos, AcercaDe)
     }
 }

@@ -18,6 +18,11 @@ kotlin {
             isStatic = true
         }
     }
+
+    // InfoDispositivo es una expect class (Beta en Kotlin 2.x): se acepta de forma explícita.
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
     
     android {
        namespace = "pe.edu.upeu.pharmamobile.shared"
