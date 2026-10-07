@@ -8,7 +8,7 @@ productos, pedidos e inventario farmacéutico.
 - Compose Multiplatform
 - Material 3 (theming corporativo, modo claro/oscuro)
 
-## Estado actual (Sesión 8 — CRUD REST con PharmaSoft)
+## Estado actual (Sesión 9 — Capacidades nativas con expect/actual)
 - Módulo de Productos en capas Clean Architecture + MVVM con Koin (Sesión 5).
 - CRUD completo de productos (listar, obtener, crear, actualizar y dar de baja)
   contra el backend del curso **PharmaSoft**, con Ktor Client; ver
@@ -17,6 +17,8 @@ productos, pedidos e inventario farmacéutico.
   con 4 destinos tipados (Inicio, Productos, Clientes y Pedidos) y navegación
   adaptativa por factor de forma (Sesión 4).
 - Identidad visual centralizada en `PharmaMobilTheme` con modo claro/oscuro.
+- Precio en soles con el formato de cada plataforma y botón **Compartir** en el
+  detalle del producto; ver [Capacidades nativas](#capacidades-nativas).
 
 ## Conexión con PharmaSoft
 
@@ -41,7 +43,7 @@ en `Info.plist`.
 | Operación | Petición | Éxito |
 |---|---|---|
 | Listar | `GET /productos?pagina=0&tamanio=20` | 200 · `PaginaResponseDto` (lista en `contenido`) |
-| Obtener | `GET /productos/{id}` (al pulsar Editar) | 200 |
+| Obtener | `GET /productos/{id}` (al pulsar Editar o abrir el detalle) | 200 |
 | Crear | `POST /productos` con `ProductoRequestDto` | 201 |
 | Actualizar | `PUT /productos/{id}` con los 5 campos (no hay PATCH) | 200 |
 | Eliminar | `DELETE /productos/{id}` | 204 sin cuerpo (no se llama a `body()`) |
@@ -118,6 +120,41 @@ mostrar nada ni enviar la petición pendiente. Cambiar de sección en el menú n
 cancela: el ViewModel vive mientras vive la Activity y la operación termina
 normalmente. Esto lo cubre la prueba `CancelacionUseCaseTest`.
 
+## Capacidades nativas
+
+La interfaz y el dominio viven en `commonMain`; solo baja a cada plataforma lo
+que depende del sistema operativo. Se usan dos estrategias:
+
+- **expect/actual** para utilidades sin estado: el compilador exige el `actual`
+  de cada plataforma (si falta uno, el target no compila).
+- **Interfaz en `domain` + inyección** cuando la implementación necesita algo
+  que `commonMain` no conoce (un `Context`, un controlador de vista). Cada
+  plataforma registra la suya dentro del `expect val platformModule`, y en las
+  pruebas se sustituye por un doble (`FakeCompartidor`).
+
+| Capacidad | commonMain | androidMain | iosMain |
+|---|---|---|---|
+| Formato de moneda | `platform/Formato.kt` — `expect fun formatearSoles(valor: Double): String` | `platform/Formato.android.kt` — `NumberFormat` con `es-PE` | `platform/Formato.ios.kt` — `NSNumberFormatter` con `es_PE` |
+| Compartir producto | `domain/platform/Compartidor.kt` — `interface Compartidor` | `platform/CompartidorAndroid.kt` — `Intent.ACTION_SEND` + chooser | `platform/CompartidorIos.kt` — `UIActivityViewController` |
+| Módulo de inyección | `di/AppModule.kt` — `expect val platformModule` | `di/PlatformModule.android.kt` — `CompartidorAndroid(androidContext())` | `di/PlatformModule.ios.kt` — `CompartidorIos()` sin contexto |
+
+El formato se aplica en `presentation/producto/ProductoUi.kt` (`toUi()`), no en
+el dominio ni en los composables. El texto que se comparte se arma una sola vez
+en `domain/usecase/TextoParaCompartir.kt`. Ninguna clase de `commonMain` importa
+`android.*` ni `platform.*`.
+
+**Detalles por plataforma.** En Android el precio sale como `S/ 4.50` con un
+espacio no separable (U+00A0) entre el símbolo y el número. El `Context` que
+entrega Koin es el de la aplicación, por eso el selector se lanza con
+`FLAG_ACTIVITY_NEW_TASK`. En iOS la hoja se presenta sobre el controlador
+visible de la ventana activa (`UIWindowScene.keyWindow`; `UIApplication.keyWindow`
+está deprecado) y en iPad se ancla como popover.
+
+**Kotlin visto desde Swift.** `iosApp` importa el framework como `import Shared`.
+Las funciones de nivel superior de `KoinInit.kt` y `MainViewController.kt` llegan
+como `KoinInitKt` y `MainViewControllerKt`, y `initKoinIos()` se invoca como
+`doInitKoinIos()` porque Swift reserva los nombres `init*` para constructores.
+
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
 - `shared/androidMain`: implementación específica de Android (bindings nativos)
@@ -132,5 +169,6 @@ normalmente. Esto lo cubre la prueba `CancelacionUseCaseTest`.
 
 ## Notas de entorno
 Desarrollado en Windows. La lógica de negocio y la app Android fueron
-validadas localmente. La compilación de iOS requiere un equipo macOS
-con Xcode, por lo que queda documentada para integración posterior.
+validadas localmente. Desde Windows se compilan los klibs de iOS
+(`:shared:compileKotlinIosSimulatorArm64`), así que el código de `iosMain` se
+verifica; enlazar y ejecutar la app iOS requiere un equipo macOS con Xcode.
