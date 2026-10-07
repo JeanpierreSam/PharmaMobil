@@ -8,94 +8,115 @@ productos, pedidos e inventario farmacéutico.
 - Compose Multiplatform
 - Material 3 (theming corporativo, modo claro/oscuro)
 
-## Estado actual (Sesión 7 — Cliente Ktor)
+## Estado actual (Sesión 8 — CRUD REST con PharmaSoft)
 - Módulo de Productos en capas Clean Architecture + MVVM con Koin (Sesión 5).
-- La lista de productos se obtiene de una API REST con Ktor Client (Sesión 7);
-  ver [Conectividad REST](#conectividad-rest).
+- CRUD completo de productos (listar, obtener, crear, actualizar y dar de baja)
+  contra el backend del curso **PharmaSoft**, con Ktor Client; ver
+  [Conexión con PharmaSoft](#conexión-con-pharmasoft).
 - Navegación principal con `ModalNavigationDrawer` + `Scaffold` + `TopAppBar`,
   con 4 destinos tipados (Inicio, Productos, Clientes y Pedidos) y navegación
   adaptativa por factor de forma (Sesión 4).
 - Identidad visual centralizada en `PharmaMobilTheme` con modo claro/oscuro.
 
-El registro de productos contra la API y el CRUD completo quedan para la
-Sesión 8, junto con el backend PharmaSoft.
+## Conexión con PharmaSoft
 
-## Conectividad REST
+**Backend:** [PharmaSoft](https://github.com/dreyna/pharmaSoft), API REST en
+Spring Boot 3 + Oracle, levantada en local en el puerto 8080. Recurso
+`/api/v1/productos`; salud en `GET /api/health`; documentación en
+`/swagger-ui.html`.
 
-**API de práctica:** Platzi Fake Store API, versión v1.
-URL base: `https://api.escuelajs.co/api/v1/`, definida en una sola constante
-(`data/remote/ConfiguracionApi.kt`) para cambiarla en una línea en la Sesión 8.
+**URL base por plataforma** (`platformModule`, calificador `URL_BASE`):
 
-**Endpoint consumido:** `GET /products?limit=10&offset=0`, que devuelve un
-arreglo de productos.
-
-**DTO:** `ProductoDto` (`id`, `title`, `price`, `description`, `images`,
-`category`) y `CategoriaDto` (`id`, `name`), en `data/remote/dto`. El mapper
-`toDomain()` los convierte en `Producto`; como la API no expone inventario ni
-estado, usa `stock = 10` y `activo = true` como valores temporales. Los
-productos que no cumplen las reglas del dominio (nombre vacío, precio 0) se
-descartan sin afectar al resto de la lista.
-
-**Cliente e inyección:**
-- `crearHttpClient(engine)` configura `ContentNegotiation` (JSON con
-  `ignoreUnknownKeys`), `Logging` (cabeceras, con prefijo `Ktor:` en
-  Logcat/Xcode), `HttpTimeout` (15 s petición, 10 s conexión) y
-  `DefaultRequest` (URL base y `Content-Type`).
-- El motor lo aporta cada plataforma en `platformModule`: OkHttp en Android y
-  Darwin en iOS.
-- `dataModule` crea un único `HttpClient`, `ProductoApi` y
-  `ProductoRepositorioRest`, que implementa `ProductoRepository` sin cambiar
-  su interfaz. `ProductoRepositorioEnMemoria` se conserva para pruebas.
-
-**Errores:** `ejecutarLlamada` (`data/remote`) es el único punto que traduce
-las excepciones de Ktor a `ErrorApi` (`domain/error`). La capa de presentación
-solo conoce `ErrorApi` y nunca importa `io.ktor`.
-
-| `ErrorApi` | Origen | Mensaje al usuario |
+| Plataforma | URL base | Motivo |
 |---|---|---|
-| `NoEncontrado` | HTTP 404 | No se encontró el recurso solicitado. |
-| `Servidor` | HTTP 5xx y otros 4xx | El servidor no está disponible. Inténtalo más tarde. |
-| `SinConexion` | `IOException` (sin red) | Sin conexión a internet. Revisa tu red. |
-| `TiempoAgotado` | `HttpRequestTimeoutException` | El servidor tardó demasiado en responder. |
+| Android (emulador) | `http://10.0.2.2:8080/api/v1/` | El emulador ve al PC anfitrión como 10.0.2.2 |
+| iOS (simulador) | `http://localhost:8080/api/v1/` | El simulador comparte la red del Mac |
 
-**Registro:** `ProductoRepositorioRest.registrar()` lanza
-`UnsupportedOperationException` hasta la Sesión 8, en la que se implementa el
-`POST` contra PharmaSoft.
+El backend es HTTP sin TLS: Android lo permite solo hacia `10.0.2.2`
+(`res/xml/network_security_config.xml`) e iOS con `NSAllowsLocalNetworking`
+en `Info.plist`.
 
-**Versión de Ktor:** 3.6.0. Incluye OkHttp 5.5.0, que exige `compileSdk` 37,
-por eso el proyecto compila contra la API 37 (`targetSdk` sigue en 36). AGP
-9.0.1 muestra un aviso porque está probado hasta la 36.1; el build, las pruebas
-y la app en el emulador funcionan.
+**Endpoints consumidos** (`data/remote/ProductoApi.kt`):
 
-### Catálogo de endpoints (API de práctica v1)
+| Operación | Petición | Éxito |
+|---|---|---|
+| Listar | `GET /productos?pagina=0&tamanio=20` | 200 · `PaginaResponseDto` (lista en `contenido`) |
+| Obtener | `GET /productos/{id}` (al pulsar Editar) | 200 |
+| Crear | `POST /productos` con `ProductoRequestDto` | 201 |
+| Actualizar | `PUT /productos/{id}` con los 5 campos (no hay PATCH) | 200 |
+| Eliminar | `DELETE /productos/{id}` | 204 sin cuerpo (no se llama a `body()`) |
 
-| Método | Ruta | Parámetros | Respuesta esperada | Errores | Uso en la app |
-|---|---|---|---|---|---|
-| GET | `/products` | `limit`, `offset` (query) | 200 · arreglo de productos | 5xx | `ProductoApi.obtenerProductos` |
-| GET | `/products/{id}` | `id` (ruta) | 200 · un producto | 400 si el id no existe (la API no responde 404) | `ProductoApi.obtenerProducto` |
-| POST | `/products` | cuerpo JSON | 201 · producto creado | 400 | Sesión 8 |
-| PUT | `/products/{id}` | `id` + cuerpo JSON | 200 · producto actualizado | 400 | Sesión 8 |
-| DELETE | `/products/{id}` | `id` (ruta) | 200 · confirmación | 400 | Sesión 8 |
+**DTO y mapeo:** `ProductoRequestDto` (`nombre`, `precio`, `stock`, `estado`,
+`categoriaId`), `ProductoResponseDto` (además `id` y `categoriaNombre`; las
+fechas se ignoran con `ignoreUnknownKeys`), `PaginaResponseDto<T>` y
+`ErrorResponseDto`. El mapper traduce `estado` ↔ `Producto.activo`. El dominio
+aún no maneja categorías: todos los productos se envían con
+`CATEGORIA_POR_DEFECTO = 1L` («Analgésicos», creada en el backend).
 
-Con el traductor actual, el 400 de un id inexistente llega como
-`ErrorApi.Servidor`; la Sesión 8 agrega `Validacion` para los 400.
+**Baja lógica:** en PharmaSoft el DELETE no borra la fila, pone
+`estado = false`. El producto pasa a la pestaña **Inactivos** y puede
+reactivarse editándolo. Un segundo DELETE sobre el mismo id responde 409.
 
-### Diccionario de DTO
+**Cliente e inyección:** `crearHttpClient(engine, urlBase)` con
+`ContentNegotiation`, `Logging` (prefijo `Ktor:` en Logcat), `HttpTimeout`
+(15 s / 10 s) y `DefaultRequest`. El motor lo aporta cada plataforma (OkHttp /
+Darwin). `dataModule` registra un único `HttpClient`, `ProductoApi` y
+`ProductoRepositorioRest`; `ProductoRepositorioEnMemoria` se conserva como
+alternativa para pruebas.
 
-| Campo JSON | Tipo Kotlin | Obligatorio | Por defecto | Campo en el dominio |
-|---|---|---|---|---|
-| `id` | `Int` | Sí | — | `Producto.id` (`Long`, con `toLong()`) |
-| `title` | `String` | Sí | — | `Producto.nombre` |
-| `price` | `Double` | Sí | — | `Producto.precio` |
-| `description` | `String` | No | `""` | No se mapea |
-| `images` | `List<String>` | No | `emptyList()` | No se mapea |
-| `category` (`categoria`) | `CategoriaDto?` | No | `null` | No se mapea |
-| `category.id` / `category.name` | `Int` / `String` | Sí | — | — |
-| — (no existe en la API) | — | — | `stock = 10`, `activo = true` | `Producto.stock`, `Producto.activo` |
+**Versión de Ktor:** 3.6.0, que trae OkHttp 5.5.0 y exige `compileSdk` 37
+(`targetSdk` sigue en 36). AGP 9.0.1 avisa que está probado hasta la 36.1; el
+build, las pruebas y la app funcionan.
 
-La API también envía `slug`, `creationAt`, `updatedAt` y, en `category`,
-`slug`, `image`, `creationAt` y `updatedAt`. El DTO no los declara y
-`ignoreUnknownKeys = true` hace que se ignoren.
+### Levantar el backend en local
+```powershell
+docker start oracle-local        # Oracle Free en el puerto 1522 (usuario PHARMADB en FREEPDB1)
+cd <ruta>\pharmaSoft
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"   # JDK 21
+.\mvnw.cmd spring-boot:run      # Flyway crea el esquema en el primer arranque
+```
+
+## Manejo de errores
+
+Las excepciones de Ktor se traducen **en un único punto**,
+`data/remote/EjecutarLlamada.kt`, a un tipo del dominio: `ErrorApi`
+(`domain/error`). Ninguna clase de `presentation` importa `io.ktor`, y el `when`
+de `mensajeDe` es exhaustivo: agregar un caso nuevo (por ejemplo, el 401 de la
+Sesión 10) obliga a darle mensaje.
+
+| Origen | `ErrorApi` | Qué ve el usuario |
+|---|---|---|
+| 400 con `validationErrors` | `Validacion(porCampo)` | Cada mensaje del servidor **debajo de su campo** (nombre, precio, stock) |
+| 404 | `NoEncontrado` | «No se encontró el recurso solicitado.» |
+| 409 (`ReglaNegocioException`) | `Conflicto(mensaje)` | El mensaje del servidor, p. ej. «Ya existe un producto con el nombre …» |
+| 5xx, JSON que no encaja con el DTO | `Servidor` | «El servidor no está disponible. Inténtalo más tarde.» |
+| Backend caído, sin red (`IOException`) | `SinConexion` | «Sin conexión con el servidor. Revisa tu red.» |
+| `HttpRequestTimeoutException` | `TiempoAgotado` | «El servidor tardó demasiado en responder.» |
+
+**Dónde se muestra.** Si falla la carga del listado, la pantalla pasa a
+`Fase.Error` con el botón **Reintentar**. Si falla una operación (crear,
+actualizar, dar de baja), la lista no desaparece: el estado va a
+`Operacion.Fallida`. Con el formulario abierto, el mensaje aparece dentro del
+formulario; si no, en un Snackbar. Los errores de validación nunca llevan a
+`Fase.Error`.
+
+**Validación local y del servidor.** La app rechaza antes de enviar lo que el
+modelo `Producto` no admite (campo vacío, no numérico, precio ≤ 0, stock
+negativo), con los mismos textos que PharmaSoft. Las reglas propias del backend
+(nombre de 3 a 150 caracteres, precio mínimo 0.01, nombre único) llegan como
+`Validacion` o `Conflicto`.
+
+**Particularidades de PharmaSoft.** El DELETE es una baja lógica
+(`estado = false`): un segundo DELETE sobre el mismo producto responde **409**
+(«…ya se encuentra inactivo»), no 404. Un PUT debe llevar los cinco campos; si
+falta alguno, responde 400.
+
+**Cancelación.** `ejecutarLlamada` y `resultadoDe` (casos de uso) relanzan la
+`CancellationException` en lugar de convertirla en error. Cuando la Activity se
+destruye, `viewModelScope` se cancela y la operación en curso termina sin
+mostrar nada ni enviar la petición pendiente. Cambiar de sección en el menú no
+cancela: el ViewModel vive mientras vive la Activity y la operación termina
+normalmente. Esto lo cubre la prueba `CancelacionUseCaseTest`.
 
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)

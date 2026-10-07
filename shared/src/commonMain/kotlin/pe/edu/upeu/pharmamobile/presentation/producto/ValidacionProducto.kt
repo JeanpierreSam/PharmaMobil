@@ -4,14 +4,16 @@ package pe.edu.upeu.pharmamobile.presentation.producto
  * Mensajes de error del formulario de registro de productos.
  *
  * Se centralizan aqui para que la UI y las pruebas usen exactamente
- * el mismo texto y no se dupliquen literales por el codigo.
+ * el mismo texto y no se dupliquen literales por el codigo. Los que tienen
+ * equivalente en PharmaSoft usan su mismo texto (ProductoRequestDTO), para que
+ * el usuario lea lo mismo lo valide la app o lo valide el servidor.
  */
 object MensajesProducto {
-    const val NOMBRE_OBLIGATORIO = "El nombre es obligatorio."
-    const val PRECIO_NO_NUMERICO = "Ingrese un precio numérico."
-    const val PRECIO_NO_POSITIVO = "El precio debe ser mayor que cero."
-    const val STOCK_NO_ENTERO = "Ingrese un stock entero."
-    const val STOCK_NEGATIVO = "El stock no puede ser negativo."
+    const val NOMBRE_OBLIGATORIO = "El nombre del producto es obligatorio"
+    const val PRECIO_NO_NUMERICO = "Ingrese un precio numérico"
+    const val PRECIO_NO_POSITIVO = "El precio debe ser mayor que cero"
+    const val STOCK_NO_ENTERO = "Ingrese un stock entero"
+    const val STOCK_NEGATIVO = "El stock no puede ser negativo"
     const val REGISTRO_EXITOSO = "Producto registrado correctamente."
 }
 

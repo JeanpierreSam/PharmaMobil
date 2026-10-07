@@ -63,7 +63,10 @@ fun App() {
                     }
 
                     Destino.Productos -> {
-                        ProductosMainScreen(modifier = Modifier.padding(paddingValues))
+                        ProductosMainScreen(
+                            snackbarHostState = snackbarHostState,
+                            modifier = Modifier.padding(paddingValues)
+                        )
                     }
 
                     Destino.Clientes -> {

@@ -13,7 +13,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-fun crearHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(engine) {
+fun crearHttpClient(engine: HttpClientEngine, urlBase: String): HttpClient = HttpClient(engine) {
     expectSuccess = true
     install(ContentNegotiation) {
         json(Json {
@@ -36,7 +36,7 @@ fun crearHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(engine) {
         connectTimeoutMillis = 10000
     }
     defaultRequest {
-        url(ConfiguracionApi.URL_BASE)
+        url(urlBase)
         contentType(ContentType.Application.Json)
     }
 }
