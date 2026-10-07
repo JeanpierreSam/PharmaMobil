@@ -19,6 +19,8 @@ productos, pedidos e inventario farmacéutico.
 - Identidad visual centralizada en `PharmaMobilTheme` con modo claro/oscuro.
 - Precio en soles con el formato de cada plataforma y botón **Compartir** en el
   detalle del producto; ver [Capacidades nativas](#capacidades-nativas).
+- Pantalla **Acerca de** con sistema, versión y modelo del dispositivo; ver
+  [Código específico de plataforma](#código-específico-de-plataforma).
 
 ## Conexión con PharmaSoft
 
@@ -154,6 +156,33 @@ está deprecado) y en iPad se ancla como popover.
 Las funciones de nivel superior de `KoinInit.kt` y `MainViewController.kt` llegan
 como `KoinInitKt` y `MainViewControllerKt`, y `initKoinIos()` se invoca como
 `doInitKoinIos()` porque Swift reserva los nombres `init*` para constructores.
+
+## Código específico de plataforma
+
+Inventario de todo lo que baja a `androidMain` / `iosMain`. Las rutas son
+relativas a `shared/src/<sourceSet>/kotlin/pe/edu/upeu/pharmamobile/`.
+
+| Capacidad | Declaración en commonMain | Android (androidMain) | iOS (iosMain) |
+|---|---|---|---|
+| Formato de moneda | `expect fun formatearSoles(valor: Double): String` — `platform/Formato.kt` | `platform/Formato.android.kt` · `NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-PE"))` | `platform/Formato.ios.kt` · `NSNumberFormatter` + `NSLocale("es_PE")` |
+| Compartir producto | `interface Compartidor` — `domain/platform/Compartidor.kt` | `platform/CompartidorAndroid.kt` · `Intent.ACTION_SEND` + `Intent.createChooser` | `platform/CompartidorIos.kt` · `UIActivityViewController` |
+| Información del dispositivo | `expect class InfoDispositivo()` — `platform/InfoDispositivo.kt` | `platform/InfoDispositivo.android.kt` · `Build.VERSION.RELEASE`, `Build.MANUFACTURER`, `Build.MODEL` | `platform/InfoDispositivo.ios.kt` · `UIDevice.currentDevice` |
+| Módulo de inyección | `expect val platformModule: Module` — `di/AppModule.kt` | `di/PlatformModule.android.kt` · motor `OkHttp`, URL `10.0.2.2`, `CompartidorAndroid(androidContext())` | `di/PlatformModule.ios.kt` · motor `Darwin`, URL `localhost`, `CompartidorIos()` |
+| Barra de estado | `expect fun ConfiguracionBarraEstado(modoOscuro: Boolean)` — `presentation/theme/BarraEstado.kt` | `presentation/theme/BarraEstado.android.kt` · `WindowInsetsController` | `presentation/theme/BarraEstado.ios.kt` · vacío: la gestiona el sistema |
+| Plataforma (plantilla) | `expect fun getPlatform(): Platform` — `Platform.kt` | `Platform.android.kt` · `Build.VERSION.SDK_INT` | `Platform.ios.kt` · `UIDevice.systemName/systemVersion` |
+
+Solo en iOS (sin `expect`, porque Android no las necesita): `MainViewController.kt`
+(`ComposeUIViewController { App() }`) y `di/KoinInit.kt` (`initKoinIos()`), que
+Swift invoca como `MainViewControllerKt.MainViewController()` y
+`KoinInitKt.doInitKoinIos()`.
+
+**Criterio.** Baja a la plataforma solo lo que depende del sistema operativo.
+Las reglas de negocio (`Producto.requiereReposicion`, validaciones, el texto
+que se comparte, la decisión de estados de `ProductoUiState`) se quedan en
+`commonMain` aunque se usen dentro de una capacidad nativa. `commonMain` no
+importa `android.*` ni `platform.*`. `InfoDispositivo` es una `expect class`
+(Beta en Kotlin 2.x), por eso `shared/build.gradle.kts` agrega
+`-Xexpect-actual-classes`.
 
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
