@@ -56,7 +56,6 @@ import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
-import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
 
 /**
  * Pestañas de clasificación de inventario de productos.
@@ -181,7 +180,7 @@ fun ProductosMainScreen(
                                 key = { it.id }
                             ) { producto ->
                                 TarjetaProducto(
-                                    producto = producto,
+                                    producto = producto.toUi(),
                                     accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
                                     onEditar = { viewModel.editar(producto.id) },
                                     onEliminar = { productoAEliminar = producto }
@@ -277,7 +276,7 @@ fun ProductosMainScreen(
 
 @Composable
 private fun TarjetaProducto(
-    producto: Producto,
+    producto: ProductoUi,
     accionesHabilitadas: Boolean,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
@@ -331,7 +330,7 @@ private fun TarjetaProducto(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Precio: ${producto.precio.aSoles()}",
+                        text = "Precio: ${producto.precio}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
