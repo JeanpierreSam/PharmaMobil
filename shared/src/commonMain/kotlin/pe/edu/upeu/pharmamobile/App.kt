@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
+import pe.edu.upeu.pharmamobile.presentation.acercade.AcercaDeScreen
 import pe.edu.upeu.pharmamobile.presentation.clientes.ClientesScreen
 import pe.edu.upeu.pharmamobile.presentation.inicio.InicioScreen
 import pe.edu.upeu.pharmamobile.presentation.navigation.Destino
@@ -77,6 +78,12 @@ fun App() {
 
                     Destino.Pedidos -> {
                         PedidosScreen(
+                            modifier = Modifier.padding(paddingValues)
+                        )
+                    }
+
+                    Destino.AcercaDe -> {
+                        AcercaDeScreen(
                             modifier = Modifier.padding(paddingValues)
                         )
                     }

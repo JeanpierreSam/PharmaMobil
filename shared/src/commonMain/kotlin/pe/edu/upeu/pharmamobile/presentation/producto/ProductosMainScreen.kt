@@ -54,9 +54,10 @@ import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
+import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoScreen
+import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
-import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
 
 /**
  * Pestañas de clasificación de inventario de productos.
@@ -79,7 +80,8 @@ enum class TabProducto(val titulo: String) {
 fun ProductosMainScreen(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
-    viewModel: ProductoViewModel = koinViewModel()
+    viewModel: ProductoViewModel = koinViewModel(),
+    detalleViewModel: DetalleProductoViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -181,8 +183,9 @@ fun ProductosMainScreen(
                                 key = { it.id }
                             ) { producto ->
                                 TarjetaProducto(
-                                    producto = producto,
+                                    producto = producto.toUi(),
                                     accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
+                                    onVerDetalle = { detalleViewModel.abrir(producto.id) },
                                     onEditar = { viewModel.editar(producto.id) },
                                     onEliminar = { productoAEliminar = producto }
                                 )
@@ -222,6 +225,8 @@ fun ProductosMainScreen(
             }
         )
     }
+
+    DetalleProductoScreen(detalleViewModel)
 
     if (uiState.formulario.abierto) {
         Dialog(onDismissRequest = viewModel::cerrarFormulario) {
@@ -277,14 +282,16 @@ fun ProductosMainScreen(
 
 @Composable
 private fun TarjetaProducto(
-    producto: Producto,
+    producto: ProductoUi,
     accionesHabilitadas: Boolean,
+    onVerDetalle: () -> Unit,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
     val esBajoStock = producto.requiereReposicion
 
     Card(
+        onClick = onVerDetalle,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (esBajoStock) {
@@ -331,7 +338,7 @@ private fun TarjetaProducto(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Precio: ${producto.precio.aSoles()}",
+                        text = "Precio: ${producto.precio}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
