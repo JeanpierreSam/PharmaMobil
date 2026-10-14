@@ -44,7 +44,7 @@ fun crearHttpClient(
                 // llamar a clearToken() (lo hace AuthApi.olvidarTokenEnCache()).
                 loadTokens { almacen.leerToken()?.let { BearerTokens(it, "") } }
                 // El token viaja desde la primera petición, salvo en el login.
-                sendWithoutRequest { peticion -> !peticion.url.encodedPath.endsWith("auth/login") }
+                sendWithoutRequest { peticion -> !peticion.url.build().encodedPath.endsWith("auth/login") }
             }
         }
     }

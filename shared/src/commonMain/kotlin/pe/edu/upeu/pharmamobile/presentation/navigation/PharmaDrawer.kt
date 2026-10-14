@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PharmaDrawerContenidoInterno(
     destinoActual: Destino,
+    destinos: List<Destino>,
     onSeleccionarDestino: (Destino) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -50,7 +51,7 @@ fun PharmaDrawerContenidoInterno(
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(modifier = Modifier.height(12.dp))
 
-        Destino.valores.forEach { destino ->
+        destinos.forEach { destino ->
             val seleccionado = destinoActual == destino
             NavigationDrawerItem(
                 label = { Text(destino.titulo) },
@@ -74,12 +75,14 @@ fun PharmaDrawerContenidoInterno(
 @Composable
 fun PharmaDrawerContent(
     destinoActual: Destino,
+    destinos: List<Destino>,
     onSeleccionarDestino: (Destino) -> Unit,
     modifier: Modifier = Modifier
 ) {
     ModalDrawerSheet(modifier = modifier) {
         PharmaDrawerContenidoInterno(
             destinoActual = destinoActual,
+            destinos = destinos,
             onSeleccionarDestino = onSeleccionarDestino
         )
     }
