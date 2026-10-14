@@ -29,6 +29,8 @@ import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.presentation.acercade.AcercaDeScreen
 import pe.edu.upeu.pharmamobile.presentation.clientes.ClientesScreen
+import pe.edu.upeu.pharmamobile.presentation.diagnostico.DiagnosticoSesionScreen
+import pe.edu.upeu.pharmamobile.presentation.diagnostico.PruebaSinSesion
 import pe.edu.upeu.pharmamobile.presentation.inicio.InicioScreen
 import pe.edu.upeu.pharmamobile.presentation.navigation.Destino
 import pe.edu.upeu.pharmamobile.presentation.navigation.PharmaNavigationAdaptativa
@@ -59,7 +61,10 @@ fun App() {
                     uiState = loginUi,
                     onUsuarioChange = sesionViewModel::onUsuarioChange,
                     onClaveChange = sesionViewModel::onClaveChange,
-                    onIngresar = sesionViewModel::ingresar
+                    onIngresar = sesionViewModel::ingresar,
+                    extraDepuracion = if (sesionViewModel.esDepuracion) {
+                        { PruebaSinSesion() }
+                    } else null
                 )
 
                 // key: otra sesión = otro árbol (se reinicia la ruta del menú, rememberSaveable incluido)
@@ -134,6 +139,7 @@ private fun AppAutenticada(
             Destino.Clientes -> ClientesScreen(modifier = Modifier.padding(paddingValues))
             Destino.Pedidos -> PedidosScreen(modifier = Modifier.padding(paddingValues))
             Destino.AcercaDe -> AcercaDeScreen(modifier = Modifier.padding(paddingValues))
+            Destino.Diagnostico -> DiagnosticoSesionScreen(modifier = Modifier.padding(paddingValues))
         }
     }
 }

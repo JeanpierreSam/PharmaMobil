@@ -9,6 +9,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import pe.edu.upeu.pharmamobile.data.local.AlmacenSeguro
 import pe.edu.upeu.pharmamobile.data.remote.AuthApi
+import pe.edu.upeu.pharmamobile.data.remote.DiagnosticoApi
 import pe.edu.upeu.pharmamobile.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobile.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobile.data.repository.AuthRepositorioRest
@@ -24,6 +25,7 @@ import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RestaurarSesionUseCase
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
+import pe.edu.upeu.pharmamobile.presentation.diagnostico.DiagnosticoSesionViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.sesion.SesionViewModel
 
@@ -31,6 +33,11 @@ val dataModule = module {
     single { crearHttpClient(get(), get(named(URL_BASE)), get<AlmacenSeguro>(), get(named(ES_DEPURACION))) }
     single { ProductoApi(get()) }
     single { AuthApi(get()) }
+    // Cliente sin plugin Auth, solo para el panel de diagnóstico (depuración).
+    single(named(CLIENTE_DIAGNOSTICO)) {
+        crearHttpClient(get(), get(named(URL_BASE)), almacen = null, esDepuracion = get(named(ES_DEPURACION)))
+    }
+    single { DiagnosticoApi(get(), get(named(CLIENTE_DIAGNOSTICO)), get(), get()) }
     single<AuthRepository> { AuthRepositorioRest(get(), get()) }
     // ProductoRepositorioEnMemoria sigue disponible como alternativa para pruebas.
     single<ProductoRepository> {
@@ -53,6 +60,7 @@ val domainModule = module {
 val presentationModule = module {
     viewModelOf(::ProductoViewModel)
     viewModelOf(::DetalleProductoViewModel)
+    viewModelOf(::DiagnosticoSesionViewModel)
     viewModel { SesionViewModel(get(), get(), get(), get(), get(named(ES_DEPURACION))) }
 }
 
@@ -64,6 +72,9 @@ const val URL_BASE = "urlBase"
 
 /** true en compilaciones de depuración: activa el log de cabeceras. */
 const val ES_DEPURACION = "esDepuracion"
+
+/** HttpClient sin Auth del panel de diagnóstico. */
+const val CLIENTE_DIAGNOSTICO = "clienteDiagnostico"
 
 expect val platformModule: org.koin.core.module.Module
 
