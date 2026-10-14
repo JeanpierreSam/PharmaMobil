@@ -4,6 +4,8 @@ import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 
 fun mensajeDe(error: ErrorApi): String = when (error) {
     is ErrorApi.Validacion -> "Revisa los campos marcados."
+    is ErrorApi.NoAutenticado -> error.mensaje
+    is ErrorApi.SinPermiso -> error.mensaje
     ErrorApi.NoEncontrado -> "No se encontró el recurso solicitado."
     is ErrorApi.Conflicto -> error.mensaje
     ErrorApi.Servidor -> "El servidor no está disponible. Inténtalo más tarde."
