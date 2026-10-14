@@ -173,6 +173,25 @@ tiene `CLIENTES_LEER` / `VENTAS_LEER`; el botón de registrar y las acciones de
 editar y dar de baja solo aparecen con `CATALOGO_ESCRIBIR`. Al cerrar sesión, los
 ViewModels de la sesión se destruyen (`AlcanceDeSesion` en `App.kt`).
 
+## Validación de sesión
+
+El destino **Diagnóstico de sesión** (y el botón «Lanzar GET /productos sin
+sesión» del login) **solo existen en compilaciones de depuración**
+(`ES_DEPURACION`). Ejecutan peticiones reales contra PharmaSoft con un segundo
+`HttpClient` sin plugin Auth (`DiagnosticoApi`) para provocar casos que la app
+normal no genera: token alterado, prefijo `bearer`, petición sin cabecera y la
+matriz de permisos del usuario actual (cuerpos `{}`: 403 sin permiso, 400 con
+permiso).
+
+| Escenario | Resultado esperado | Resultado observado |
+|---|---|---|
+| 1. Token válido | 200 | _pendiente de ejecutar_ |
+| 2. Token expirado | 401 «El token ha expirado. Inicie sesión nuevamente» | _pendiente_ |
+| 3. Token alterado | 401 «El token no es válido» | _pendiente_ |
+| 4. Sin cabecera | 401 «Debe iniciar sesión para acceder a este recurso» | _pendiente_ |
+| 5. Prefijo `bearer` | 401 «Debe iniciar sesión para acceder a este recurso» | _pendiente_ |
+| 6. Usuario deshabilitado | 401 «El usuario está deshabilitado» | _pendiente_ |
+
 ## Capacidades nativas
 
 La interfaz y el dominio viven en `commonMain`; solo baja a cada plataforma lo
