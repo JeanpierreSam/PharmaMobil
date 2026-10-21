@@ -76,6 +76,7 @@ fun mensajeSesion(error: ErrorSesion?): String = when (error) {
     is ErrorSesion.SesionExpirada -> error.mensaje
     is ErrorSesion.NoAutenticado -> error.mensaje
     ErrorSesion.SinPermiso -> "No tiene permisos para realizar esta operación."
-    ErrorSesion.SinConexion -> "Sin conexión con el servidor. Revisa tu red."
+    // Sesión 11: el único paso que de verdad exige red es el primer inicio de sesión.
+    ErrorSesion.SinConexion -> "Sin conexión con el servidor. Necesitas internet para iniciar sesión; después la app funciona sin red."
     null -> "Error desconocido."
 }
