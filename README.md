@@ -8,7 +8,7 @@ productos, pedidos e inventario farmacéutico.
 - Compose Multiplatform
 - Material 3 (theming corporativo, modo claro/oscuro)
 
-## Estado actual (Sesión 9 — Capacidades nativas con expect/actual)
+## Estado actual (Sesión 10 — Autenticación JWT)
 - Módulo de Productos en capas Clean Architecture + MVVM con Koin (Sesión 5).
 - CRUD completo de productos (listar, obtener, crear, actualizar y dar de baja)
   contra el backend del curso **PharmaSoft**, con Ktor Client; ver
@@ -21,6 +21,8 @@ productos, pedidos e inventario farmacéutico.
   detalle del producto; ver [Capacidades nativas](#capacidades-nativas).
 - Pantalla **Acerca de** con sistema, versión y modelo del dispositivo; ver
   [Código específico de plataforma](#código-específico-de-plataforma).
+- Login con JWT contra PharmaSoft, token en almacén seguro por plataforma y
+  permisos en la interfaz; ver [Autenticación](#autenticación).
 
 ## Conexión con PharmaSoft
 
@@ -121,6 +123,74 @@ destruye, `viewModelScope` se cancela y la operación en curso termina sin
 mostrar nada ni enviar la petición pendiente. Cambiar de sección en el menú no
 cancela: el ViewModel vive mientras vive la Activity y la operación termina
 normalmente. Esto lo cubre la prueba `CancelacionUseCaseTest`.
+
+## Autenticación
+
+**Flujo.** `LoginScreen` → `SesionViewModel` → `IniciarSesionUseCase` →
+`AuthRepositorioRest` → `POST /api/v1/auth/login`. El token se guarda en
+`AlmacenSeguro` y el plugin `Auth` (bearer) de Ktor lo adjunta a cada petición;
+nadie escribe la cabecera `Authorization` a mano. La interfaz solo observa
+`EstadoSesion` (`Verificando`, `Activa`, `Inactiva(aviso)`).
+
+- **401** (sin token, expirado, alterado o usuario deshabilitado): el
+  repositorio de productos avisa al `AuthRepository`, que borra el token, olvida
+  la caché del cliente y deja la sesión `Inactiva(aviso)`; la app vuelve al
+  login con el mensaje literal del servidor.
+- **403** (sin permiso): la sesión se mantiene y se muestra el mensaje del
+  servidor.
+
+**Dónde se guarda el token.**
+
+| Plataforma | Almacén |
+|---|---|
+| Android | `EncryptedSharedPreferences` (AES-256, llave en Android Keystore), archivo `sesion_segura.xml` |
+| iOS | Keychain (`kSecClassGenericPassword`, servicio `pe.edu.upeu.pharmamobile`, cuenta `jwt`) |
+
+**Registro.** `Logging` muestra `Authorization: Bearer ***` (cabecera saneada) y
+se apaga (`LogLevel.NONE`) fuera de compilaciones de depuración.
+
+**Usuarios de prueba (PharmaSoft).**
+
+| Usuario | Clave | Permisos relevantes |
+|---|---|---|
+| `admin` | `Admin123` | Todos |
+| `vendedor` | (ver PharmaSoft) | Catálogo (leer), clientes, ventas |
+| `almacen` | `Almacen123` | Catálogo (leer y escribir); sin clientes ni ventas |
+
+**Respuestas de seguridad de PharmaSoft.**
+
+| Situación | Código | `message` |
+|---|---|---|
+| Sin cabecera o sin prefijo `Bearer ` | 401 | Debe iniciar sesión para acceder a este recurso |
+| Token expirado | 401 | El token ha expirado. Inicie sesión nuevamente |
+| Token con la firma alterada | 401 | El token no es válido |
+| Usuario deshabilitado | 401 | El usuario está deshabilitado |
+| Token válido sin el permiso de la ruta | 403 | No tiene permisos para realizar esta operación |
+| Login con clave incorrecta | 401 | Usuario o contraseña incorrectos |
+
+**Permisos en la interfaz.** El menú solo muestra Clientes y Pedidos a quien
+tiene `CLIENTES_LEER` / `VENTAS_LEER`; el botón de registrar y las acciones de
+editar y dar de baja solo aparecen con `CATALOGO_ESCRIBIR`. Al cerrar sesión, los
+ViewModels de la sesión se destruyen (`AlcanceDeSesion` en `App.kt`).
+
+## Validación de sesión
+
+El destino **Diagnóstico de sesión** (y el botón «Lanzar GET /productos sin
+sesión» del login) **solo existen en compilaciones de depuración**
+(`ES_DEPURACION`). Ejecutan peticiones reales contra PharmaSoft con un segundo
+`HttpClient` sin plugin Auth (`DiagnosticoApi`) para provocar casos que la app
+normal no genera: token alterado, prefijo `bearer`, petición sin cabecera y la
+matriz de permisos del usuario actual (cuerpos `{}`: 403 sin permiso, 400 con
+permiso).
+
+| Escenario | Resultado esperado | Resultado observado |
+|---|---|---|
+| 1. Token válido | 200 | _pendiente de ejecutar_ |
+| 2. Token expirado | 401 «El token ha expirado. Inicie sesión nuevamente» | _pendiente_ |
+| 3. Token alterado | 401 «El token no es válido» | _pendiente_ |
+| 4. Sin cabecera | 401 «Debe iniciar sesión para acceder a este recurso» | _pendiente_ |
+| 5. Prefijo `bearer` | 401 «Debe iniciar sesión para acceder a este recurso» | _pendiente_ |
+| 6. Usuario deshabilitado | 401 «El usuario está deshabilitado» | _pendiente_ |
 
 ## Capacidades nativas
 

@@ -4,6 +4,8 @@ import pe.edu.upeu.pharmamobile.data.mapper.toDomain
 import pe.edu.upeu.pharmamobile.data.mapper.toRequest
 import pe.edu.upeu.pharmamobile.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobile.data.remote.ejecutarLlamada
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 
@@ -14,7 +16,9 @@ import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
  */
 class ProductoRepositorioRest(
     private val api: ProductoApi,
-    private val categoriaPorDefecto: Long
+    private val categoriaPorDefecto: Long,
+    /** Se invoca ante un 401: el token expiró, fue alterado o el usuario fue deshabilitado. */
+    private val alPerderSesion: suspend (mensaje: String) -> Unit = {}
 ) : ProductoRepository {
 
     // Un registro que no cumpla las reglas de Producto (nombre vacío, precio 0)
@@ -35,5 +39,10 @@ class ProductoRepositorioRest(
 
     override suspend fun eliminar(id: Long) = llamar { api.eliminar(id) }
 
-    private suspend fun <T> llamar(bloque: suspend () -> T): T = ejecutarLlamada(bloque).getOrThrow()
+    private suspend fun <T> llamar(bloque: suspend () -> T): T {
+        val resultado = ejecutarLlamada(bloque)
+        val error = (resultado.exceptionOrNull() as? ErrorApiException)?.error
+        if (error is ErrorApi.NoAutenticado) alPerderSesion(error.mensaje)
+        return resultado.getOrThrow()
+    }
 }

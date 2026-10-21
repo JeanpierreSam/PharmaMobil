@@ -79,6 +79,7 @@ enum class TabProducto(val titulo: String) {
 @Composable
 fun ProductosMainScreen(
     snackbarHostState: SnackbarHostState,
+    puedeEscribir: Boolean,
     modifier: Modifier = Modifier,
     viewModel: ProductoViewModel = koinViewModel(),
     detalleViewModel: DetalleProductoViewModel = koinViewModel()
@@ -185,6 +186,7 @@ fun ProductosMainScreen(
                                 TarjetaProducto(
                                     producto = producto.toUi(),
                                     accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
+                                    mostrarAcciones = puedeEscribir,
                                     onVerDetalle = { detalleViewModel.abrir(producto.id) },
                                     onEditar = { viewModel.editar(producto.id) },
                                     onEliminar = { productoAEliminar = producto }
@@ -196,16 +198,18 @@ fun ProductosMainScreen(
             }
         }
 
-        FloatingActionButton(
-            onClick = viewModel::nuevoProducto,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Registrar nuevo producto"
-            )
+        if (puedeEscribir) {
+            FloatingActionButton(
+                onClick = viewModel::nuevoProducto,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Registrar nuevo producto"
+                )
+            }
         }
     }
 
@@ -284,6 +288,7 @@ fun ProductosMainScreen(
 private fun TarjetaProducto(
     producto: ProductoUi,
     accionesHabilitadas: Boolean,
+    mostrarAcciones: Boolean,
     onVerDetalle: () -> Unit,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
@@ -349,11 +354,13 @@ private fun TarjetaProducto(
                     )
                 }
 
-                IconButton(onClick = onEditar, enabled = accionesHabilitadas) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar ${producto.nombre}")
-                }
-                IconButton(onClick = onEliminar, enabled = accionesHabilitadas) {
-                    Icon(Icons.Default.Delete, contentDescription = "Dar de baja ${producto.nombre}")
+                if (mostrarAcciones) {
+                    IconButton(onClick = onEditar, enabled = accionesHabilitadas) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar ${producto.nombre}")
+                    }
+                    IconButton(onClick = onEliminar, enabled = accionesHabilitadas) {
+                        Icon(Icons.Default.Delete, contentDescription = "Dar de baja ${producto.nombre}")
+                    }
                 }
             }
         }
