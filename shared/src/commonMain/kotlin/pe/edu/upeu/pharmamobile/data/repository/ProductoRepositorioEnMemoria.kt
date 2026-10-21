@@ -7,11 +7,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import pe.edu.upeu.pharmamobile.domain.model.Producto
-import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.result.ResultadoProductos
 import kotlin.random.Random
 
-class ProductoRepositorioEnMemoria : ProductoRepository {
+/**
+ * Desde la sesión 11 ya no implementa ProductoRepository (el contrato pasó a
+ * observar()/sincronizar()); se conserva porque DominioAsincronoTest ejercita sus funciones.
+ */
+class ProductoRepositorioEnMemoria {
 
     private val productosIniciales = listOf(
         Producto(id = 1L, nombre = "Paracetamol", precio = 15.50, stock = 100, activo = true),
@@ -24,16 +27,16 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
     private val _productosFlow = MutableStateFlow(productosIniciales)
     val productosFlow: StateFlow<List<Producto>> = _productosFlow.asStateFlow()
 
-    override suspend fun listar(): List<Producto> {
+    suspend fun listar(): List<Producto> {
         delay(Random.nextLong(300, 800))
         return _productosFlow.value
     }
 
-    override suspend fun obtener(id: Long): Producto =
+    suspend fun obtener(id: Long): Producto =
         _productosFlow.value.firstOrNull { it.id == id }
             ?: throw NoSuchElementException("Producto no encontrado con id: $id")
 
-    override suspend fun registrar(producto: Producto): Producto {
+    suspend fun registrar(producto: Producto): Producto {
         delay(Random.nextLong(300, 800))
         val siguienteId = (_productosFlow.value.maxOfOrNull { it.id } ?: 0L) + 1L
         val nuevo = producto.copy(id = siguienteId)
@@ -41,7 +44,7 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
         return nuevo
     }
 
-    override suspend fun actualizar(producto: Producto): Producto {
+    suspend fun actualizar(producto: Producto): Producto {
         delay(Random.nextLong(300, 800))
         obtener(producto.id)
         _productosFlow.value = _productosFlow.value.map { if (it.id == producto.id) producto else it }
@@ -49,7 +52,7 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
     }
 
     // Igual que PharmaSoft: baja lógica, el producto queda inactivo.
-    override suspend fun eliminar(id: Long) {
+    suspend fun eliminar(id: Long) {
         delay(Random.nextLong(300, 800))
         val producto = obtener(id)
         _productosFlow.value = _productosFlow.value.map { if (it.id == id) producto.copy(activo = false) else it }
