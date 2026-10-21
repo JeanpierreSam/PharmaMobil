@@ -8,12 +8,14 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import pe.edu.upeu.pharmamobile.data.local.AlmacenSeguro
+import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.remote.AuthApi
 import pe.edu.upeu.pharmamobile.data.remote.DiagnosticoApi
 import pe.edu.upeu.pharmamobile.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobile.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobile.data.repository.AuthRepositorioRest
 import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioRest
+import pe.edu.upeu.pharmamobile.db.PharmaDb
 import pe.edu.upeu.pharmamobile.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
@@ -30,6 +32,9 @@ import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.sesion.SesionViewModel
 
 val dataModule = module {
+    // Sesión 11: la base local. El driver lo aporta cada plataforma (platformModule).
+    // Se crea al arrancar Koin: si el esquema está mal, la app falla aquí y no más adelante.
+    single(createdAtStart = true) { PharmaDb(get<CreadorDeDriver>().crear()) }
     single { crearHttpClient(get(), get(named(URL_BASE)), get<AlmacenSeguro>(), get(named(ES_DEPURACION))) }
     single { ProductoApi(get()) }
     single { AuthApi(get()) }
