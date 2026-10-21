@@ -20,10 +20,12 @@ import pe.edu.upeu.pharmamobile.data.remote.dto.ProductoResponseDto
  * lo devuelve en el GET y asigna ids reales desde 100. Sin emulador ni red.
  *
  * - [hayRed] = false → cada petición lanza IOException, igual que el modo avión.
+ * - [rechazarAltas] = true → cada POST responde 409 (regla de negocio de PharmaSoft).
  */
 internal class PharmaSoftFalso(vararg iniciales: ProductoResponseDto) {
 
     var hayRed = true
+    var rechazarAltas = false
     val productos = iniciales.toMutableList()
     var postsRecibidos = 0
         private set
@@ -35,6 +37,11 @@ internal class PharmaSoftFalso(vararg iniciales: ProductoResponseDto) {
     val motor = MockEngine { peticion ->
         if (!hayRed) throw IOException("Modo avión: no hay red")
         when {
+            peticion.method == HttpMethod.Post && rechazarAltas -> respond(
+                content = """{"status":409,"message":"Ya existe un producto con ese nombre"}""",
+                status = HttpStatusCode.Conflict,
+                headers = cabeceras
+            )
             peticion.method == HttpMethod.Post -> {
                 postsRecibidos++
                 val cuerpo = (peticion.body as TextContent).text
