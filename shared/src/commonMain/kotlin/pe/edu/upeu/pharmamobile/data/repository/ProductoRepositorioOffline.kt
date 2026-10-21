@@ -6,6 +6,7 @@ import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
+import pe.edu.upeu.pharmamobile.platform.ahoraEnMilis
 
 /**
  * Offline-first: la base local es la fuente de verdad y [remoto] (PharmaSoft)
@@ -14,14 +15,19 @@ import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
  */
 class ProductoRepositorioOffline(
     private val local: ProductoLocal,
-    private val remoto: ProductoRepositorioRest
+    private val remoto: ProductoRepositorioRest,
+    /** Se inyecta para que las pruebas usen una hora fija. */
+    private val reloj: () -> Long = ::ahoraEnMilis
 ) : ProductoRepository {
 
     override fun observar(): Flow<List<Producto>> = local.observar()
 
+    override fun observarUltimaSincronizacion(): Flow<Long?> = local.observarUltimaSincronizacion()
+
     override suspend fun sincronizar() {
         subirPendientes()                                   // 1.º lo que el usuario hizo sin red
         local.reemplazarSincronizados(remoto.listar())      // 2.º la verdad del servidor
+        local.registrarSincronizacion(reloj())              // solo si las dos anteriores funcionaron
     }
 
     /** El formulario de edición y el detalle leen de la base: funcionan sin red. */

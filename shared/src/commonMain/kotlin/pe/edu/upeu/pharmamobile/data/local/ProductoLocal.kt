@@ -2,6 +2,7 @@ package pe.edu.upeu.pharmamobile.data.local
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,6 +19,7 @@ import pe.edu.upeu.pharmamobile.db.Producto as ProductoEntity
 class ProductoLocal(base: PharmaDb) {
 
     private val consultas = base.productoQueries
+    private val sincronizacion = base.sincronizacionQueries
 
     /** Emite de nuevo cada vez que la tabla cambia. */
     fun observar(): Flow<List<Producto>> =
@@ -68,6 +70,18 @@ class ProductoLocal(base: PharmaDb) {
             consultas.borrarSincronizados()
             productos.forEach { escribir(it, pendiente = false) }
         }
+    }
+
+    // --- Antigüedad de los datos (actividad autónoma, producto 3) ----------
+
+    /** Instante de la última sincronización correcta; null si nunca hubo una. */
+    fun observarUltimaSincronizacion(): Flow<Long?> =
+        sincronizacion.leerUltima()
+            .asFlow()
+            .mapToOneOrNull(Dispatchers.Default)
+
+    fun registrarSincronizacion(instante: Long) {
+        sincronizacion.guardarUltima(instante)
     }
 
     private fun escribir(p: Producto, pendiente: Boolean) {

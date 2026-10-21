@@ -13,3 +13,8 @@ class ObservarProductosUseCase(private val repository: ProductoRepository) {
 class SincronizarProductosUseCase(private val repository: ProductoRepository) {
     suspend operator fun invoke(): Result<Unit> = resultadoDe { repository.sincronizar() }
 }
+
+/** Para mostrar «Actualizado hace 2 horas» (actividad autónoma, producto 3). */
+class ObservarUltimaSincronizacionUseCase(private val repository: ProductoRepository) {
+    operator fun invoke(): Flow<Long?> = repository.observarUltimaSincronizacion()
+}

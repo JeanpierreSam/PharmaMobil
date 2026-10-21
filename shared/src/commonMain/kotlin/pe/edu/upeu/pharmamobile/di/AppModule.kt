@@ -26,6 +26,7 @@ import pe.edu.upeu.pharmamobile.domain.usecase.CerrarSesionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.IniciarSesionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RestaurarSesionUseCase
@@ -61,6 +62,7 @@ val dataModule = module {
 val domainModule = module {
     factoryOf(::ObservarProductosUseCase)
     factoryOf(::SincronizarProductosUseCase)
+    factoryOf(::ObservarUltimaSincronizacionUseCase)
     factoryOf(::ObtenerProductoUseCase)
     factoryOf(::RegistrarProductoUseCase)
     factoryOf(::ActualizarProductoUseCase)

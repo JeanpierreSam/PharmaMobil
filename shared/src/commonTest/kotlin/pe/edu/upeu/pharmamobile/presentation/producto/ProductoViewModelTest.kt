@@ -13,6 +13,7 @@ import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
@@ -29,7 +30,8 @@ internal fun viewModelCon(repo: FakeProductoRepository) = ProductoViewModel(
     ObtenerProductoUseCase(repo),
     RegistrarProductoUseCase(repo),
     ActualizarProductoUseCase(repo),
-    EliminarProductoUseCase(repo)
+    EliminarProductoUseCase(repo),
+    ObservarUltimaSincronizacionUseCase(repo)
 )
 
 /**

@@ -69,13 +69,14 @@ internal class PharmaSoftFalso(vararg iniciales: ProductoResponseDto) {
 }
 
 /** El repositorio real de la app, con la base en memoria y PharmaSoft simulado. */
-internal fun repositorioOfflineCon(servidor: PharmaSoftFalso, local: ProductoLocal) =
+internal fun repositorioOfflineCon(servidor: PharmaSoftFalso, local: ProductoLocal, reloj: () -> Long = { 0L }) =
     ProductoRepositorioOffline(
         local = local,
         remoto = ProductoRepositorioRest(
             ProductoApi(crearHttpClient(servidor.motor, "http://localhost/api/v1/")),
             categoriaPorDefecto = 1L
-        )
+        ),
+        reloj = reloj
     )
 
 internal fun productoDelServidor(id: Long, nombre: String, precio: Double, stock: Int) =

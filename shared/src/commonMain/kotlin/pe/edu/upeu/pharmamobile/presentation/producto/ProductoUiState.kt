@@ -17,7 +17,9 @@ data class ProductoUiState(
     val mensajeExito: String? = null,
     val sincronizando: Boolean = false,
     /** null = la última sincronización funcionó (o aún no terminó la primera). */
-    val avisoRed: String? = null
+    val avisoRed: String? = null,
+    /** Instante (epoch ms) de la última sincronización correcta; null = nunca. */
+    val ultimaSincronizacion: Long? = null
 ) {
     sealed interface Fase {
         data object Cargando : Fase

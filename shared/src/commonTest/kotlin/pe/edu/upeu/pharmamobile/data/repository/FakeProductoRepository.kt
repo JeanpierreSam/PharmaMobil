@@ -20,6 +20,7 @@ class FakeProductoRepository(
 ) : ProductoRepository {
 
     private val tabla = MutableStateFlow(productos)
+    private val ultimaSincronizacion = MutableStateFlow<Long?>(null)
 
     /** Lo que hay ahora en la «base». */
     val productos: List<Producto> get() = tabla.value
@@ -35,9 +36,12 @@ class FakeProductoRepository(
 
     override fun observar(): Flow<List<Producto>> = tabla
 
+    override fun observarUltimaSincronizacion(): Flow<Long?> = ultimaSincronizacion
+
     override suspend fun sincronizar() {
         llamadasASincronizar++
         esperarOFallar(fallaAlSincronizar)
+        ultimaSincronizacion.value = INSTANTE_SINCRONIZACION
     }
 
     override suspend fun obtener(id: Long): Producto {
@@ -66,5 +70,9 @@ class FakeProductoRepository(
     private suspend fun esperarOFallar(falla: Throwable?) {
         if (retardoMs > 0) delay(retardoMs)
         falla?.let { throw it }
+    }
+
+    companion object {
+        const val INSTANTE_SINCRONIZACION = 1_000L
     }
 }

@@ -1,0 +1,12 @@
+-- Tabla de una sola fila: instante (epoch en milisegundos) de la última
+-- sincronización CORRECTA. Si la sincronización falla, no se toca.
+CREATE TABLE sincronizacion (
+    id     INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    ultima INTEGER NOT NULL
+);
+
+guardarUltima:
+INSERT OR REPLACE INTO sincronizacion(id, ultima) VALUES (1, ?);
+
+leerUltima:
+SELECT ultima FROM sincronizacion WHERE id = 1;

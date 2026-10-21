@@ -38,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -48,11 +49,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
+import pe.edu.upeu.pharmamobile.platform.ahoraEnMilis
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoScreen
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
@@ -101,10 +104,18 @@ fun ProductosMainScreen(
         }
     }
 
+    // «hace 1 minuto» no debe quedarse congelado: se recalcula cada minuto.
+    val ahora by produceState(ahoraEnMilis()) {
+        while (true) {
+            delay(60_000)
+            value = ahoraEnMilis()
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             BarraSincronizacion(
-                antiguedad = "Catálogo guardado en el dispositivo",
+                antiguedad = textoAntiguedad(uiState.ultimaSincronizacion, ahora),
                 aviso = uiState.avisoRed,
                 sincronizando = uiState.sincronizando,
                 onSincronizar = viewModel::sincronizar
@@ -124,7 +135,7 @@ fun ProductosMainScreen(
                         ) {
                             // Primera apertura sin red: estado vacío informativo, no una pantalla de error.
                             Text(
-                                text = if (uiState.avisoRed != null) {
+                                text = if (uiState.ultimaSincronizacion == null && uiState.avisoRed != null) {
                                     "Aún no hay datos guardados en este dispositivo.\nConéctate a internet y pulsa Sincronizar."
                                 } else {
                                     "Todavía no hay productos registrados."
