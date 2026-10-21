@@ -7,21 +7,25 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import pe.edu.upeu.pharmamobile.data.repository.FakeProductoRepository
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
-import pe.edu.upeu.pharmamobile.domain.usecase.ListarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-/** Arma el ViewModel con los cinco casos de uso sobre el mismo repositorio falso. */
+/** Arma el ViewModel con todos sus casos de uso sobre el mismo repositorio falso. */
 internal fun viewModelCon(repo: FakeProductoRepository) = ProductoViewModel(
-    ListarProductosUseCase(repo),
+    ObservarProductosUseCase(repo),
+    SincronizarProductosUseCase(repo),
     ObtenerProductoUseCase(repo),
     RegistrarProductoUseCase(repo),
     ActualizarProductoUseCase(repo),
@@ -63,11 +67,14 @@ class ProductoViewModelTest {
         assertIs<ProductoUiState.Fase.ConProductos>(vm.uiState.value.fase)
     }
 
+    // Sesión 11: sin red ya no hay Fase.Error; la lista guardada se queda y se avisa.
     @Test
-    fun repositorioQueFalla_produceError() = runTest {
-        val repo = FakeProductoRepository().apply { fallaAlListar = IllegalStateException("Sin conexión con el servidor") }
+    fun sincronizacionSinRed_conservaLaListaYMuestraElAviso() = runTest {
+        val repo = FakeProductoRepository(listOf(Producto(1L, "Paracetamol", 15.50, 100, true)))
+            .apply { fallaAlSincronizar = ErrorApiException(ErrorApi.SinConexion) }
         val vm = viewModelCon(repo)
-        assertIs<ProductoUiState.Fase.Error>(vm.uiState.value.fase)
+        assertIs<ProductoUiState.Fase.ConProductos>(vm.uiState.value.fase)
+        assertEquals("Sin conexión: mostrando datos guardados", vm.uiState.value.avisoRed)
     }
 
     @Test

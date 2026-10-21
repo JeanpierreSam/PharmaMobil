@@ -98,11 +98,11 @@ class ProductoViewModelTransicionesTest {
     }
 
     @Test
-    fun eliminacion_pasaPorEnCursoYVuelveAInactivaConLaListaRecargada() = runTest(dispatcher) {
+    fun eliminacion_pasaPorEnCursoYLaListaSeActualizaSinRecargarla() = runTest(dispatcher) {
         val repo = FakeProductoRepository(listOf(paracetamol, ibuprofeno), retardoMs = 100)
         val vm = viewModelCon(repo)
         advanceUntilIdle()
-        val listadosAntes = repo.llamadasAListar
+        val sincronizacionesAntes = repo.llamadasASincronizar
 
         vm.eliminar(paracetamol.id)
         runCurrent()
@@ -115,7 +115,8 @@ class ProductoViewModelTransicionesTest {
         val estado = vm.uiState.value
         assertEquals(Operacion.Inactiva, estado.operacion)
         assertEquals("Producto dado de baja", estado.mensajeExito)
-        assertEquals(listadosAntes + 1, repo.llamadasAListar)
+        // Sesión 11: nadie volvió a pedir la lista; el Flow trajo el cambio.
+        assertEquals(sincronizacionesAntes, repo.llamadasASincronizar)
         assertFalse(estado.productos.first { it.id == paracetamol.id }.activo)   // baja lógica
     }
 

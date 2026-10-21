@@ -1,12 +1,17 @@
 package pe.edu.upeu.pharmamobile.data.repository
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 
 /**
- * Doble del repositorio para las pruebas: sin latencia real, con la misma
- * baja lógica que PharmaSoft y capaz de fallar a voluntad en cada operación.
+ * Doble del repositorio para las pruebas del ViewModel: sin latencia real, con
+ * la misma baja lógica que PharmaSoft y capaz de fallar a voluntad.
+ *
+ * Sesión 11: igual que la base real, la «tabla» es un Flow; cada escritura
+ * emite de nuevo y el ViewModel se entera sin pedir la lista.
  * [retardoMs] permite observar estados intermedios (Operacion.EnCurso).
  */
 class FakeProductoRepository(
@@ -14,51 +19,48 @@ class FakeProductoRepository(
     var retardoMs: Long = 0L
 ) : ProductoRepository {
 
-    val productos = productos.toMutableList()
+    private val tabla = MutableStateFlow(productos)
 
-    var fallaAlListar: Throwable? = null
+    /** Lo que hay ahora en la «base». */
+    val productos: List<Producto> get() = tabla.value
+
+    var fallaAlSincronizar: Throwable? = null
     var fallaAlObtener: Throwable? = null
     var fallaAlRegistrar: Throwable? = null
     var fallaAlActualizar: Throwable? = null
     var fallaAlEliminar: Throwable? = null
 
-    var llamadasAListar = 0
+    var llamadasASincronizar = 0
         private set
 
-    override suspend fun listar(): List<Producto> {
-        llamadasAListar++
-        esperarOFallar(fallaAlListar)
-        return productos.toList()
+    override fun observar(): Flow<List<Producto>> = tabla
+
+    override suspend fun sincronizar() {
+        llamadasASincronizar++
+        esperarOFallar(fallaAlSincronizar)
     }
 
     override suspend fun obtener(id: Long): Producto {
         esperarOFallar(fallaAlObtener)
-        return productos.first { it.id == id }
+        return tabla.value.first { it.id == id }
     }
 
     override suspend fun registrar(producto: Producto): Producto {
         esperarOFallar(fallaAlRegistrar)
-        val guardado = producto.copy(id = (productos.maxOfOrNull { it.id } ?: 0L) + 1L)
-        productos += guardado
+        val guardado = producto.copy(id = (tabla.value.maxOfOrNull { it.id } ?: 0L) + 1L)
+        tabla.value = tabla.value + guardado
         return guardado
     }
 
     override suspend fun actualizar(producto: Producto): Producto {
         esperarOFallar(fallaAlActualizar)
-        reemplazar { if (it.id == producto.id) producto else it }
+        tabla.value = tabla.value.map { if (it.id == producto.id) producto else it }
         return producto
     }
 
     override suspend fun eliminar(id: Long) {
         esperarOFallar(fallaAlEliminar)
-        reemplazar { if (it.id == id) it.copy(activo = false) else it }
-    }
-
-    // MutableList.replaceAll es API de Java: en Kotlin/Native requiere opt-in experimental.
-    private fun reemplazar(transformar: (Producto) -> Producto) {
-        val nuevos = productos.map(transformar)
-        productos.clear()
-        productos.addAll(nuevos)
+        tabla.value = tabla.value.map { if (it.id == id) it.copy(activo = false) else it }
     }
 
     private suspend fun esperarOFallar(falla: Throwable?) {
