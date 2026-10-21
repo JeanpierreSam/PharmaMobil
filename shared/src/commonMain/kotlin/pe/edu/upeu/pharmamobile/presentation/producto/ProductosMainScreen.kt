@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,6 +73,8 @@ enum class TabProducto(val titulo: String) {
  * Sesión 08: el `when` sobre [Fase] es exhaustivo (sin else) y las operaciones
  * se reflejan en [Operacion], así que guardar o eliminar no oculta la lista.
  * Los resultados (éxito o fallo) se muestran en el Snackbar de la app.
+ *
+ * Sesión 11: la lista sale de la base local; arriba, la barra de sincronización.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,96 +102,93 @@ fun ProductosMainScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        when (val fase = uiState.fase) {
-            Fase.Cargando -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            is Fase.Error -> {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "No se pudo cargar el inventario: ${fase.mensaje}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = viewModel::cargarProductos) {
-                        Text("Reintentar")
-                    }
-                }
-            }
-
-            Fase.SinProductos -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Todavía no hay productos registrados.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            is Fase.ConProductos -> {
-                val productosFiltrados = remember(fase.productos, tabSeleccionada) {
-                    when (TabProducto.entries[tabSeleccionada]) {
-                        TabProducto.ACTIVOS -> fase.productos.activos()
-                        TabProducto.INACTIVOS -> fase.productos.inactivos()
-                        TabProducto.BAJO_STOCK -> fase.productos.bajoStock()
-                    }
-                }
-
-                Column(modifier = Modifier.fillMaxSize()) {
-                    PrimaryTabRow(selectedTabIndex = tabSeleccionada) {
-                        TabProducto.entries.forEachIndexed { index, tab ->
-                            Tab(
-                                selected = tabSeleccionada == index,
-                                onClick = { tabSeleccionada = index },
-                                text = { Text(tab.titulo) }
-                            )
+        Column(modifier = Modifier.fillMaxSize()) {
+            BarraSincronizacion(
+                antiguedad = "Catálogo guardado en el dispositivo",
+                aviso = uiState.avisoRed,
+                sincronizando = uiState.sincronizando,
+                onSincronizar = viewModel::sincronizar
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                when (val fase = uiState.fase) {
+                    Fase.Cargando -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
 
-                    if (productosFiltrados.isEmpty()) {
+                    Fase.SinProductos -> {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Primera apertura sin red: estado vacío informativo, no una pantalla de error.
                             Text(
-                                text = "No hay productos en esta categoría.",
+                                text = if (uiState.avisoRed != null) {
+                                    "Aún no hay datos guardados en este dispositivo.\nConéctate a internet y pulsa Sincronizar."
+                                } else {
+                                    "Todavía no hay productos registrados."
+                                },
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
                             )
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(
-                                items = productosFiltrados,
-                                key = { it.id }
-                            ) { producto ->
-                                TarjetaProducto(
-                                    producto = producto.toUi(),
-                                    accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
-                                    mostrarAcciones = puedeEscribir,
-                                    onVerDetalle = { detalleViewModel.abrir(producto.id) },
-                                    onEditar = { viewModel.editar(producto.id) },
-                                    onEliminar = { productoAEliminar = producto }
-                                )
+                    }
+
+                    is Fase.ConProductos -> {
+                        val productosFiltrados = remember(fase.productos, tabSeleccionada) {
+                            when (TabProducto.entries[tabSeleccionada]) {
+                                TabProducto.ACTIVOS -> fase.productos.activos()
+                                TabProducto.INACTIVOS -> fase.productos.inactivos()
+                                TabProducto.BAJO_STOCK -> fase.productos.bajoStock()
+                            }
+                        }
+
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            PrimaryTabRow(selectedTabIndex = tabSeleccionada) {
+                                TabProducto.entries.forEachIndexed { index, tab ->
+                                    Tab(
+                                        selected = tabSeleccionada == index,
+                                        onClick = { tabSeleccionada = index },
+                                        text = { Text(tab.titulo) }
+                                    )
+                                }
+                            }
+
+                            if (productosFiltrados.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No hay productos en esta categoría.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(
+                                        items = productosFiltrados,
+                                        key = { it.id }
+                                    ) { producto ->
+                                        TarjetaProducto(
+                                            producto = producto.toUi(),
+                                            accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
+                                            mostrarAcciones = puedeEscribir,
+                                            onVerDetalle = { detalleViewModel.abrir(producto.id) },
+                                            onEditar = { viewModel.editar(producto.id) },
+                                            onEliminar = { productoAEliminar = producto }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -324,12 +322,16 @@ private fun TarjetaProducto(
                 )
 
                 Text(
-                    text = if (producto.activo) "Activo" else "Inactivo",
+                    text = when {
+                        producto.pendiente -> "Pendiente de envío"
+                        producto.activo -> "Activo"
+                        else -> "Inactivo"
+                    },
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (producto.activo) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
+                    color = when {
+                        producto.pendiente -> MaterialTheme.colorScheme.tertiary
+                        producto.activo -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.error
                     },
                     modifier = Modifier.padding(end = 8.dp)
                 )

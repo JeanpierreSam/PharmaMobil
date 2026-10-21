@@ -14,7 +14,9 @@ data class ProductoUi(
     val precio: String,
     val stock: Int,
     val activo: Boolean,
-    val requiereReposicion: Boolean
+    val requiereReposicion: Boolean,
+    /** Sesión 11: creado sin conexión, PharmaSoft todavía no lo tiene. */
+    val pendiente: Boolean
 )
 
 fun Producto.toUi() = ProductoUi(
@@ -23,5 +25,7 @@ fun Producto.toUi() = ProductoUi(
     precio = formatearSoles(precio),
     stock = stock,
     activo = activo,
-    requiereReposicion = requiereReposicion
+    requiereReposicion = requiereReposicion,
+    // Los ids negativos los asigna la base local: el servidor nunca los usa.
+    pendiente = id < 0
 )

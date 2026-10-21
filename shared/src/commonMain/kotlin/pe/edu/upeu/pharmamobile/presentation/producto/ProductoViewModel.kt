@@ -9,17 +9,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
+import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ErrorRegistroProducto
-import pe.edu.upeu.pharmamobile.domain.usecase.ListarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
 
 class ProductoViewModel(
-    private val listarProductos: ListarProductosUseCase,
+    private val observarProductos: ObservarProductosUseCase,
+    private val sincronizarProductos: SincronizarProductosUseCase,
     private val obtenerProducto: ObtenerProductoUseCase,
     private val registrarProducto: RegistrarProductoUseCase,
     private val actualizarProducto: ActualizarProductoUseCase,
@@ -29,21 +32,39 @@ class ProductoViewModel(
     private val _uiState = MutableStateFlow(ProductoUiState())
     val uiState: StateFlow<ProductoUiState> = _uiState.asStateFlow()
 
-    init { cargarProductos() }
-
-    fun cargarProductos() {
+    init {
+        // Se suscribe UNA vez a la base: cada escritura en la tabla llega sola aquí.
         viewModelScope.launch {
-            // Si ya hay lista en pantalla se refresca sin volver a Cargando (no parpadea).
-            if (_uiState.value.fase !is Fase.ConProductos) {
-                _uiState.update { it.copy(fase = Fase.Cargando) }
+            observarProductos().collect { productos ->
+                _uiState.update { it.copy(fase = faseDe(productos)) }
             }
-            val fase = listarProductos().fold(
-                onSuccess = { lista -> if (lista.isEmpty()) Fase.SinProductos else Fase.ConProductos(lista) },
-                onFailure = { fallo -> Fase.Error(mensajeDeFallo(fallo)) }
-            )
-            _uiState.update { it.copy(fase = fase) }
+        }
+        sincronizar()
+    }
+
+    /** Desde el init y desde el botón de la barra. No devuelve datos: los trae el Flow. */
+    fun sincronizar() {
+        if (_uiState.value.sincronizando) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(sincronizando = true) }
+            val resultado = sincronizarProductos()
+            _uiState.update {
+                it.copy(
+                    sincronizando = false,
+                    avisoRed = resultado.exceptionOrNull()?.let(::avisoDeSincronizacion)
+                )
+            }
         }
     }
+
+    private fun faseDe(productos: List<Producto>): Fase =
+        if (productos.isEmpty()) Fase.SinProductos else Fase.ConProductos(productos)
+
+    private fun avisoDeSincronizacion(fallo: Throwable): String =
+        when ((fallo as? ErrorApiException)?.error) {
+            ErrorApi.SinConexion, ErrorApi.TiempoAgotado -> "Sin conexión: mostrando datos guardados"
+            else -> "No se pudo sincronizar: ${mensajeDeFallo(fallo)}"
+        }
 
     // --- Formulario -------------------------------------------------------
 
@@ -51,7 +72,7 @@ class ProductoViewModel(
         _uiState.update { it.copy(formulario = FormularioProducto(abierto = true), mensajeExito = null) }
     }
 
-    /** Pide el producto al servidor (GET /productos/{id}) y precarga el formulario. */
+    /** Lee el producto de la base local y precarga el formulario (funciona sin red). */
     fun editar(id: Long) {
         viewModelScope.launch {
             obtenerProducto(id)
@@ -115,14 +136,15 @@ class ProductoViewModel(
                         it.copy(
                             formulario = FormularioProducto(),
                             operacion = Operacion.Inactiva,
-                            mensajeExito = if (tipo == Operacion.Tipo.Crear) {
-                                "Producto \"${producto.nombre}\" registrado"
-                            } else {
-                                "Producto \"${producto.nombre}\" actualizado"
+                            mensajeExito = when {
+                                // id negativo: quedó en la base local, PharmaSoft aún no lo tiene
+                                producto.id < 0 -> "Sin conexión: \"${producto.nombre}\" quedó pendiente de envío"
+                                tipo == Operacion.Tipo.Crear -> "Producto \"${producto.nombre}\" registrado"
+                                else -> "Producto \"${producto.nombre}\" actualizado"
                             }
                         )
                     }
-                    cargarProductos()
+                    // Ya no se recarga la lista: se escribió en la tabla y el Flow emitió.
                 }
                 .onFailure { fallo -> manejarFallo(fallo) }
         }
@@ -135,7 +157,6 @@ class ProductoViewModel(
             eliminarProducto(id)
                 .onSuccess {
                     _uiState.update { it.copy(operacion = Operacion.Inactiva, mensajeExito = "Producto dado de baja") }
-                    cargarProductos()
                 }
                 .onFailure { fallo -> manejarFallo(fallo) }
         }

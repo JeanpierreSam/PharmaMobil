@@ -6,18 +6,23 @@ import pe.edu.upeu.pharmamobile.domain.model.Producto
  * [fase] describe la pantalla completa; [operacion], la acción que el usuario
  * lanzó (crear, actualizar, eliminar). Separarlas evita que guardar un producto
  * vuelva la lista a Cargando.
+ *
+ * Sesión 11: la lista sale de la base local, así que ya no existe Fase.Error.
+ * Si la red falla, la lista se queda y [avisoRed] explica por qué no está al día.
  */
 data class ProductoUiState(
     val fase: Fase = Fase.Cargando,
     val formulario: FormularioProducto = FormularioProducto(),
     val operacion: Operacion = Operacion.Inactiva,
-    val mensajeExito: String? = null
+    val mensajeExito: String? = null,
+    val sincronizando: Boolean = false,
+    /** null = la última sincronización funcionó (o aún no terminó la primera). */
+    val avisoRed: String? = null
 ) {
     sealed interface Fase {
         data object Cargando : Fase
         data object SinProductos : Fase
         data class ConProductos(val productos: List<Producto>) : Fase
-        data class Error(val mensaje: String) : Fase
     }
 
     sealed interface Operacion {
