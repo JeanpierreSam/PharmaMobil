@@ -3,16 +3,17 @@ package pe.edu.upeu.pharmamobile.data.repository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import pe.edu.upeu.pharmamobile.domain.model.EstadoEnvio
 import pe.edu.upeu.pharmamobile.domain.model.Producto
+import pe.edu.upeu.pharmamobile.domain.model.ResumenSync
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 
 /**
  * Doble del repositorio para las pruebas del ViewModel: sin latencia real, con
  * la misma baja lógica que PharmaSoft y capaz de fallar a voluntad.
  *
- * Sesión 11: igual que la base real, la «tabla» es un Flow; cada escritura
- * emite de nuevo y el ViewModel se entera sin pedir la lista.
- * [retardoMs] permite observar estados intermedios (Operacion.EnCurso).
+ * Sesión 11: igual que la base real, la «tabla» es un Flow.
+ * Sesión 13: también el estado de envío; [resumen] es lo que devuelve sincronizar().
  */
 class FakeProductoRepository(
     productos: List<Producto> = emptyList(),
@@ -21,9 +22,16 @@ class FakeProductoRepository(
 
     private val tabla = MutableStateFlow(productos)
     private val ultimaSincronizacion = MutableStateFlow<Long?>(null)
+    private val estadoEnvio = MutableStateFlow(EstadoEnvio())
 
     /** Lo que hay ahora en la «base». */
     val productos: List<Producto> get() = tabla.value
+
+    var envio: EstadoEnvio
+        get() = estadoEnvio.value
+        set(valor) { estadoEnvio.value = valor }
+
+    var resumen = ResumenSync(enviadas = 0, fallidas = 0, pendientes = 0)
 
     var fallaAlSincronizar: Throwable? = null
     var fallaAlObtener: Throwable? = null
@@ -33,15 +41,30 @@ class FakeProductoRepository(
 
     var llamadasASincronizar = 0
         private set
+    var reintentosPedidos = 0
+        private set
 
     override fun observar(): Flow<List<Producto>> = tabla
 
     override fun observarUltimaSincronizacion(): Flow<Long?> = ultimaSincronizacion
 
-    override suspend fun sincronizar() {
+    override fun observarEstadoEnvio(): Flow<EstadoEnvio> = estadoEnvio
+
+    override suspend fun sincronizar(): ResumenSync {
         llamadasASincronizar++
         esperarOFallar(fallaAlSincronizar)
         ultimaSincronizacion.value = INSTANTE_SINCRONIZACION
+        return resumen
+    }
+
+    override suspend fun reintentarFallidos() {
+        reintentosPedidos++
+        envio = EstadoEnvio(pendientes = envio.pendientes + envio.fallidas.size)
+    }
+
+    override suspend fun descartarPendiente(id: Long) {
+        tabla.value = tabla.value.filterNot { it.id == id }
+        envio = envio.copy(fallidas = envio.fallidas.filterNot { it.id == id })
     }
 
     override suspend fun obtener(id: Long): Producto {

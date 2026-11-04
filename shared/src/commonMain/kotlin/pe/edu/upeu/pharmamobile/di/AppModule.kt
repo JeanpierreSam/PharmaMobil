@@ -23,12 +23,15 @@ import pe.edu.upeu.pharmamobile.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.CerrarSesionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.IniciarSesionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarEstadoEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RestaurarSesionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
@@ -70,6 +73,9 @@ val domainModule = module {
     factoryOf(::IniciarSesionUseCase)
     factoryOf(::CerrarSesionUseCase)
     factoryOf(::RestaurarSesionUseCase)
+    factoryOf(::ObservarEstadoEnvioUseCase)
+    factoryOf(::ReintentarEnviosFallidosUseCase)
+    factoryOf(::DescartarEnvioUseCase)
 }
 
 val presentationModule = module {
