@@ -58,6 +58,8 @@ kotlin {
             api(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
+            // Sesión 13: NotificationCompat y ActivityCompat
+            implementation(libs.androidx.core.ktx)
             implementation(libs.sqldelight.android)
         }
         iosMain.dependencies {
