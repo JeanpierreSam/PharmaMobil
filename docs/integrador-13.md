@@ -30,15 +30,20 @@ tras el login, con las 15 filas intactas, y su pendiente se envió con id real.
 
 El sistema mostró el diálogo dos veces: «Allow PharmaMobil to send you notifications?».
 
-## Huecos (estado al 04-11-2026)
+## Ficha de integración (04-11-2026)
 
 | N.º | Hueco detectado | Gravedad | Decisión | Fecha de cierre |
 |---|---|---|---|---|
-| H1 | Un pendiente que PharmaSoft rechaza queda atascado para siempre y nadie lo dice | Alta | Cerrado hoy (pasos 2–4) | 04-11-2026 |
-| H2 | Un 503 o tiempo agotado se reintenta sin límite ni espera | Media | Cerrado hoy (paso 3) | 04-11-2026 |
-| H3 | La barra no muestra cuántos cambios faltan por enviar | Media | Cerrado hoy (paso 4) | 04-11-2026 |
-| H4 | La app no usa ningún permiso y la S14 necesita notificaciones (Android 13+) | Media | Sesión 13 (paso 5) | — |
-| H5 | Los fallos ocurridos en el teléfono no llegan a ningún lado | Media | Sesión 13 (paso 6) | — |
-| H6 | Token vencido a mitad del formulario: se pierde lo escrito | Alta | Sesión 14 | 10-11-2026 |
-| H7 | Al recuperar la señal no se sincroniza sola | Media | Sesión 14 | 10-11-2026 |
-| H8 | El cierre de sesión deja catálogo y pendientes del usuario anterior | Media | Sesión 14 | 10-11-2026 |
+| H1 | Un pendiente que PharmaSoft rechaza queda atascado para siempre y nadie lo dice | Alta | Cerrado hoy: intentos, fallidas visibles, Revisar | 04-11-2026 |
+| H2 | Un 503 o tiempo agotado se reintenta sin límite ni espera | Media | Cerrado hoy: 5 intentos, espera 1-2-4-8 s | 04-11-2026 |
+| H3 | La barra no muestra cuántos cambios faltan por enviar | Media | Cerrado hoy | 04-11-2026 |
+| H4 | La app no usa permisos; la S14 necesita notificaciones (Android 13+) | Media | Cerrado hoy: GestorPermisos + avisos de stock | 04-11-2026 |
+| H5 | Los fallos en el teléfono no llegan a ningún lado | Media | Cerrado hoy: Crashlytics y Analytics detrás de Telemetria | 04-11-2026 |
+| H6 | Token vencido a mitad de una edición: se pierde lo escrito (el alta sí queda pendiente) | Alta | Sesión 14: guardar borrador de la edición antes del login y restaurarlo | 10-11-2026 |
+| H7 | Al recuperar la señal no se sincroniza sola | Media | Sesión 14: sincronizar al volver la conectividad | 10-11-2026 |
+| H8 | El cierre de sesión deja catálogo y pendientes del usuario anterior | Media | Sesión 14: advertir si hay pendientes y limpiar la base al salir | 10-11-2026 |
+| H9 | Reintentar un alta cuya respuesta se perdió puede repetirla | Baja | Descartado: el nombre único de PharmaSoft responde 409 y la fila queda visible para descartarla; una clave de operación exige cambiar el backend del curso | — |
+| H10 | Editar o dar de baja un producto sincronizado exige red | Baja | Descartado: fuera del alcance (S11); exige una cola de operaciones y el usuario ve el aviso sin perder datos | — |
+| H11 | Al volver de Ajustes el permiso activado no se refleja | Media | Cerrado hoy: LifecycleResumeEffect | 04-11-2026 |
+| H12 | Cloud Messaging no está integrado | Media | Sesión 14: los avisos remotos son el tema de esa sesión | 10-11-2026 |
+| H13 | iOS no se ha ejecutado (sin Mac) | Media | Descartado esta semana: el código compila a klib en Windows y el estado está en el README; se prueba cuando haya Mac | — |
