@@ -11,11 +11,14 @@ import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarEstadoEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -31,7 +34,10 @@ internal fun viewModelCon(repo: FakeProductoRepository) = ProductoViewModel(
     RegistrarProductoUseCase(repo),
     ActualizarProductoUseCase(repo),
     EliminarProductoUseCase(repo),
-    ObservarUltimaSincronizacionUseCase(repo)
+    ObservarUltimaSincronizacionUseCase(repo),
+    ObservarEstadoEnvioUseCase(repo),
+    ReintentarEnviosFallidosUseCase(repo),
+    DescartarEnvioUseCase(repo)
 )
 
 /**

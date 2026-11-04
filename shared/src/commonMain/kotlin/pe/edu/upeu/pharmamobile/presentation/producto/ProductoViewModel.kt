@@ -11,12 +11,15 @@ import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ErrorRegistroProducto
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarEstadoEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
@@ -28,7 +31,11 @@ class ProductoViewModel(
     private val registrarProducto: RegistrarProductoUseCase,
     private val actualizarProducto: ActualizarProductoUseCase,
     private val eliminarProducto: EliminarProductoUseCase,
-    private val observarUltimaSincronizacion: ObservarUltimaSincronizacionUseCase
+    private val observarUltimaSincronizacion: ObservarUltimaSincronizacionUseCase,
+    // Sesión 13
+    private val observarEstadoEnvio: ObservarEstadoEnvioUseCase,
+    private val reintentarEnvios: ReintentarEnviosFallidosUseCase,
+    private val descartarEnvio: DescartarEnvioUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductoUiState())
@@ -44,6 +51,19 @@ class ProductoViewModel(
         viewModelScope.launch {
             observarUltimaSincronizacion().collect { instante ->
                 _uiState.update { it.copy(ultimaSincronizacion = instante) }
+            }
+        }
+        // Sesión 13: pendientes y fallidas salen de consultas observables de la base,
+        // nunca de la red. Si ya no queda nada fallido, el diálogo se cierra solo.
+        viewModelScope.launch {
+            observarEstadoEnvio().collect { envio ->
+                _uiState.update {
+                    it.copy(
+                        pendientes = envio.pendientes,
+                        fallidas = envio.fallidas,
+                        dialogoFallidas = it.dialogoFallidas && envio.fallidas.isNotEmpty()
+                    )
+                }
             }
         }
         sincronizar()
@@ -176,6 +196,33 @@ class ProductoViewModel(
                 mensajeExito = null,
                 operacion = if (it.operacion is Operacion.Fallida) Operacion.Inactiva else it.operacion
             )
+        }
+    }
+
+    // --- Envíos fallidos (sesión 13) ----------------------------------------
+
+    fun revisarFallidas() = _uiState.update { it.copy(dialogoFallidas = true) }
+
+    fun cerrarFallidas() = _uiState.update { it.copy(dialogoFallidas = false) }
+
+    /** Devuelve las filas fallidas a la cola (intentos = 0) y sincroniza de inmediato. */
+    fun reintentarFallidas() {
+        viewModelScope.launch {
+            reintentarEnvios()
+                .onSuccess {
+                    _uiState.update { it.copy(dialogoFallidas = false) }
+                    sincronizar()
+                }
+                .onFailure { fallo -> manejarFallo(fallo) }
+        }
+    }
+
+    /** Quita de la base un producto que nunca llegó a PharmaSoft. */
+    fun descartarFallida(id: Long) {
+        viewModelScope.launch {
+            descartarEnvio(id)
+                .onSuccess { _uiState.update { it.copy(mensajeExito = "Cambio descartado") } }
+                .onFailure { fallo -> manejarFallo(fallo) }
         }
     }
 

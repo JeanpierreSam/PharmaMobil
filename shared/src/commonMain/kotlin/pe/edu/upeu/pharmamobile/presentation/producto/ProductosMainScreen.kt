@@ -117,8 +117,11 @@ fun ProductosMainScreen(
             BarraSincronizacion(
                 antiguedad = textoAntiguedad(uiState.ultimaSincronizacion, ahora),
                 aviso = uiState.avisoRed,
+                pendientes = uiState.pendientes,
+                fallidas = uiState.fallidas.size,
                 sincronizando = uiState.sincronizando,
-                onSincronizar = viewModel::sincronizar
+                onSincronizar = viewModel::sincronizar,
+                onRevisarFallidas = viewModel::revisarFallidas
             )
             Box(modifier = Modifier.weight(1f)) {
                 when (val fase = uiState.fase) {
@@ -192,6 +195,7 @@ fun ProductosMainScreen(
                                     ) { producto ->
                                         TarjetaProducto(
                                             producto = producto.toUi(),
+                                            fallido = producto.id in uiState.idsFallidos,
                                             accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
                                             mostrarAcciones = puedeEscribir,
                                             onVerDetalle = { detalleViewModel.abrir(producto.id) },
@@ -236,6 +240,15 @@ fun ProductosMainScreen(
             dismissButton = {
                 TextButton(onClick = { productoAEliminar = null }) { Text("Cancelar") }
             }
+        )
+    }
+
+    if (uiState.dialogoFallidas) {
+        DialogoEnviosFallidos(
+            fallidas = uiState.fallidas,
+            onReintentar = viewModel::reintentarFallidas,
+            onDescartar = viewModel::descartarFallida,
+            onCerrar = viewModel::cerrarFallidas
         )
     }
 
@@ -296,6 +309,7 @@ fun ProductosMainScreen(
 @Composable
 private fun TarjetaProducto(
     producto: ProductoUi,
+    fallido: Boolean,
     accionesHabilitadas: Boolean,
     mostrarAcciones: Boolean,
     onVerDetalle: () -> Unit,
@@ -334,12 +348,14 @@ private fun TarjetaProducto(
 
                 Text(
                     text = when {
+                        fallido -> "No se pudo enviar"
                         producto.pendiente -> "Pendiente de envío"
                         producto.activo -> "Activo"
                         else -> "Inactivo"
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = when {
+                        fallido -> MaterialTheme.colorScheme.error
                         producto.pendiente -> MaterialTheme.colorScheme.tertiary
                         producto.activo -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.error
