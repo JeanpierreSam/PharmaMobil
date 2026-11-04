@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.googleServices)       // lee google-services.json
+    alias(libs.plugins.firebaseCrashlytics)  // build ID; sin él Crashlytics falla al iniciar
 }
 
 kotlin {
