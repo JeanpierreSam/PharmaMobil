@@ -7,6 +7,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import pe.edu.upeu.pharmamobile.data.firebase.TelemetriaFirebase
 import pe.edu.upeu.pharmamobile.data.local.AlmacenSeguro
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.local.PerfilLocal
@@ -19,18 +20,23 @@ import pe.edu.upeu.pharmamobile.data.repository.AuthRepositorioRest
 import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioOffline
 import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioRest
 import pe.edu.upeu.pharmamobile.db.PharmaDb
+import pe.edu.upeu.pharmamobile.domain.port.Telemetria
 import pe.edu.upeu.pharmamobile.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.CerrarSesionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.IniciarSesionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarEstadoEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RestaurarSesionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobile.presentation.avisos.AvisosStockViewModel
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.diagnostico.DiagnosticoSesionViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
@@ -57,6 +63,8 @@ val dataModule = module {
         ProductoRepositorioRest(get(), CATEGORIA_POR_DEFECTO) { mensaje -> auth.cerrarSesion(mensaje) }
     }
     single<ProductoRepository> { ProductoRepositorioOffline(get(), get()) }
+    // Sesión 13: Firebase queda detrás de la interfaz del dominio.
+    single<Telemetria> { TelemetriaFirebase() }
 }
 
 val domainModule = module {
@@ -70,12 +78,16 @@ val domainModule = module {
     factoryOf(::IniciarSesionUseCase)
     factoryOf(::CerrarSesionUseCase)
     factoryOf(::RestaurarSesionUseCase)
+    factoryOf(::ObservarEstadoEnvioUseCase)
+    factoryOf(::ReintentarEnviosFallidosUseCase)
+    factoryOf(::DescartarEnvioUseCase)
 }
 
 val presentationModule = module {
     viewModelOf(::ProductoViewModel)
     viewModelOf(::DetalleProductoViewModel)
     viewModelOf(::DiagnosticoSesionViewModel)
+    viewModelOf(::AvisosStockViewModel)
     viewModel { SesionViewModel(get(), get(), get(), get(), get(named(ES_DEPURACION))) }
 }
 

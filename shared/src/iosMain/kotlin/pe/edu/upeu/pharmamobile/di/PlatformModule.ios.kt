@@ -10,8 +10,12 @@ import pe.edu.upeu.pharmamobile.data.local.AlmacenSeguro
 import pe.edu.upeu.pharmamobile.data.local.AlmacenSeguroIos
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriverIos
+import pe.edu.upeu.pharmamobile.domain.permiso.GestorPermisos
 import pe.edu.upeu.pharmamobile.domain.platform.Compartidor
+import pe.edu.upeu.pharmamobile.domain.platform.Notificador
+import pe.edu.upeu.pharmamobile.permiso.GestorPermisosIos
 import pe.edu.upeu.pharmamobile.platform.CompartidorIos
+import pe.edu.upeu.pharmamobile.platform.NotificadorIos
 
 actual val platformModule = module {
     single<HttpClientEngine> { Darwin.create() }
@@ -20,6 +24,8 @@ actual val platformModule = module {
     single<Compartidor> { CompartidorIos() }
     single<AlmacenSeguro> { AlmacenSeguroIos() }
     single<CreadorDeDriver> { CreadorDeDriverIos() }
+    single<GestorPermisos> { GestorPermisosIos() }
+    single<Notificador> { NotificadorIos() }
     // Nombre completo: el proyecto ya tiene su propia interfaz Platform (plantilla KMP).
     single(named(ES_DEPURACION)) { kotlin.native.Platform.isDebugBinary }
 }

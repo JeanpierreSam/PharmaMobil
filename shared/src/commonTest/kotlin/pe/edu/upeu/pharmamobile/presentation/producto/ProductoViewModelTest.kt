@@ -11,12 +11,16 @@ import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarEstadoEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobile.platform.FakeTelemetria
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -26,12 +30,15 @@ import kotlin.test.assertIs
 /** Arma el ViewModel con todos sus casos de uso sobre el mismo repositorio falso. */
 internal fun viewModelCon(repo: FakeProductoRepository) = ProductoViewModel(
     ObservarProductosUseCase(repo),
-    SincronizarProductosUseCase(repo),
+    SincronizarProductosUseCase(repo, FakeTelemetria()),
     ObtenerProductoUseCase(repo),
     RegistrarProductoUseCase(repo),
     ActualizarProductoUseCase(repo),
     EliminarProductoUseCase(repo),
-    ObservarUltimaSincronizacionUseCase(repo)
+    ObservarUltimaSincronizacionUseCase(repo),
+    ObservarEstadoEnvioUseCase(repo),
+    ReintentarEnviosFallidosUseCase(repo),
+    DescartarEnvioUseCase(repo)
 )
 
 /**

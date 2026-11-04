@@ -8,7 +8,7 @@ productos, pedidos e inventario farmacéutico.
 - Compose Multiplatform
 - Material 3 (theming corporativo, modo claro/oscuro)
 
-## Estado actual (Sesión 11 — Persistencia offline-first)
+## Estado actual (Sesión 13 — Proyecto integrador)
 - Módulo de Productos en capas Clean Architecture + MVVM con Koin (Sesión 5).
 - CRUD completo de productos (listar, obtener, crear, actualizar y dar de baja)
   contra el backend del curso **PharmaSoft**, con Ktor Client; ver
@@ -26,6 +26,8 @@ productos, pedidos e inventario farmacéutico.
 - Catálogo guardado en SQLite con SQLDelight: la app lista, registra y abre
   sesión sin red, y sincroniza al reconectar; ver
   [Persistencia offline-first](#persistencia-offline-first).
+- Cola de envío con reintentos acotados, permiso de notificaciones y telemetría con
+  Firebase; ver [Proyecto integrador](#proyecto-integrador-sesión-13).
 
 ## Conexión con PharmaSoft
 
@@ -315,6 +317,45 @@ de la última sincronización correcta; si falla, no se toca).
 ```powershell
 .\gradlew.bat :shared:testAndroidHostTest --rerun-tasks
 ```
+
+## Proyecto integrador (sesión 13)
+
+### Cola de envío con límite y memoria
+Cada fila pendiente de `producto` guarda `intentos` y `ultimoError` (migración `1.sqm`, base versión 2).
+`ProductoRepositorioOffline.sincronizar()` sube fila por fila y luego baja:
+
+| Error de PharmaSoft | Clase | Qué pasa con la fila |
+|---|---|---|
+| Sin conexión, 401 | Corta la sincronización | No cuenta intento; se reintenta al volver la red o tras el login |
+| Tiempo agotado, 5xx | Transitorio | `intentos + 1` y espera de 1, 2, 4 y 8 s; al 5.º queda **fallida** |
+| 400, 403, 404, 409 | Permanente | Queda **fallida** de inmediato con el motivo |
+
+La barra de Productos muestra «N cambios por enviar» y «N cambios no se pudieron enviar» con el botón
+*Revisar* (reintentar o descartar). Editar un producto fallido lo devuelve a la cola.
+
+### Permisos
+`GestorPermisos` (commonMain) con tres estados: `Concedido`, `Denegado`, `DenegadoParaSiempre`.
+Android: `GestorPermisosAndroid` + `PuentePermisos` (registrado en `MainActivity.onCreate`), `POST_NOTIFICATIONS`
+en el manifiesto. Uso: avisos de stock bajo en la pestaña *Bajo Stock* (se explica antes de pedir;
+denegado para siempre → *Abrir Ajustes*). iOS: `GestorPermisosIos` con `UNUserNotificationCenter`.
+
+### Firebase
+Firebase Kotlin SDK (GitLive) 2.7.0: Crashlytics y Analytics, solo en `data/firebase/TelemetriaFirebase.kt`
+detrás de `domain/port/Telemetria`. Eventos: `sincronizacion` (enviadas, fallidas, pendientes);
+no fatales: `EnvioRechazadoException`. Nunca se registran datos personales ni el token.
+`google-services.json` **no se versiona**: cada integrante descarga el suyo en `androidApp/`
+(sin ese archivo `:androidApp` no compila).
+
+### Estado de iOS (04-11-2026)
+El código de iOS (`GestorPermisosIos`, `NotificadorIos`, drivers) compila a klib en Windows
+(`:shared:compileKotlinIosSimulatorArm64`), pero no se ha ejecutado ni enlazado: no hay Mac con Xcode.
+Falta: `-lsqlite3` en *Other Linker Flags*, `GoogleService-Info.plist`, vincular FirebaseCore,
+FirebaseCrashlytics y FirebaseAnalytics (SwiftPM o CocoaPods), y llamar a `initializeFirebase()`
+al iniciar.
+
+### Pruebas
+`.\gradlew.bat :shared:testAndroidHostTest`: reintento transitorio y permanente, sin red, espera creciente,
+reintentar fallidos, telemetría de la sincronización, avisos de stock con dobles y textos de estado.
 
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)

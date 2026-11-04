@@ -58,6 +58,8 @@ kotlin {
             api(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
+            // Sesión 13: NotificationCompat y ActivityCompat
+            implementation(libs.androidx.core.ktx)
             implementation(libs.sqldelight.android)
         }
         iosMain.dependencies {
@@ -75,6 +77,9 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.coroutines.core)
+            // Sesión 13: Firebase Kotlin SDK (GitLive). Solo lo usa data/firebase.
+            implementation(libs.gitlive.firebase.crashlytics)
+            implementation(libs.gitlive.firebase.analytics)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
