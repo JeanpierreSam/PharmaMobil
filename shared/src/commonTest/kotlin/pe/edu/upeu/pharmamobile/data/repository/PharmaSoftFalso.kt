@@ -21,13 +21,21 @@ import pe.edu.upeu.pharmamobile.data.remote.dto.ProductoResponseDto
  *
  * - [hayRed] = false → cada petición lanza IOException, igual que el modo avión.
  * - [rechazarAltas] = true → cada POST responde 409 (regla de negocio de PharmaSoft).
+ * - [fallarAltasCon] = 503 → cada POST falla con ese código (fallo transitorio). El GET sigue bien.
  */
 internal class PharmaSoftFalso(vararg iniciales: ProductoResponseDto) {
 
     var hayRed = true
     var rechazarAltas = false
+    var fallarAltasCon: HttpStatusCode? = null
     val productos = iniciales.toMutableList()
+
+    /** POST aceptados (guardados). */
     var postsRecibidos = 0
+        private set
+
+    /** Todos los POST que llegaron, aceptados o no. */
+    var altasIntentadas = 0
         private set
 
     private var siguienteId = 100L
@@ -36,13 +44,21 @@ internal class PharmaSoftFalso(vararg iniciales: ProductoResponseDto) {
 
     val motor = MockEngine { peticion ->
         if (!hayRed) throw IOException("Modo avión: no hay red")
+        val esAlta = peticion.method == HttpMethod.Post
+        if (esAlta) altasIntentadas++
+        val falla = fallarAltasCon
         when {
-            peticion.method == HttpMethod.Post && rechazarAltas -> respond(
+            esAlta && falla != null -> respond(
+                content = """{"status":${falla.value},"message":"Servicio no disponible"}""",
+                status = falla,
+                headers = cabeceras
+            )
+            esAlta && rechazarAltas -> respond(
                 content = """{"status":409,"message":"Ya existe un producto con ese nombre"}""",
                 status = HttpStatusCode.Conflict,
                 headers = cabeceras
             )
-            peticion.method == HttpMethod.Post -> {
+            esAlta -> {
                 postsRecibidos++
                 val cuerpo = (peticion.body as TextContent).text
                 val pedido = json.decodeFromString(ProductoRequestDto.serializer(), cuerpo)
@@ -68,16 +84,25 @@ internal class PharmaSoftFalso(vararg iniciales: ProductoResponseDto) {
     }
 }
 
-/** El repositorio real de la app, con la base en memoria y PharmaSoft simulado. */
-internal fun repositorioOfflineCon(servidor: PharmaSoftFalso, local: ProductoLocal, reloj: () -> Long = { 0L }) =
-    ProductoRepositorioOffline(
-        local = local,
-        remoto = ProductoRepositorioRest(
-            ProductoApi(crearHttpClient(servidor.motor, "http://localhost/api/v1/")),
-            categoriaPorDefecto = 1L
-        ),
-        reloj = reloj
-    )
+/**
+ * El repositorio real de la app, con la base en memoria y PharmaSoft simulado.
+ * [esperar] va ANTES de [reloj]: las pruebas de la S11 pasan el reloj como lambda final.
+ * Por defecto no espera: las pruebas no duermen.
+ */
+internal fun repositorioOfflineCon(
+    servidor: PharmaSoftFalso,
+    local: ProductoLocal,
+    esperar: suspend (Long) -> Unit = {},
+    reloj: () -> Long = { 0L }
+) = ProductoRepositorioOffline(
+    local = local,
+    remoto = ProductoRepositorioRest(
+        ProductoApi(crearHttpClient(servidor.motor, "http://localhost/api/v1/")),
+        categoriaPorDefecto = 1L
+    ),
+    reloj = reloj,
+    esperar = esperar
+)
 
 internal fun productoDelServidor(id: Long, nombre: String, precio: Double, stock: Int) =
     ProductoResponseDto(id = id, nombre = nombre, precio = precio, stock = stock)
