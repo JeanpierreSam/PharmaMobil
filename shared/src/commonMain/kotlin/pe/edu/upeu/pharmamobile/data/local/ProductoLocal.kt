@@ -2,15 +2,20 @@ package pe.edu.upeu.pharmamobile.data.local
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOne
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import pe.edu.upeu.pharmamobile.db.PharmaDb
+import pe.edu.upeu.pharmamobile.domain.model.EnvioFallido
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 // SQLDelight genera una clase «Producto» (la fila de la tabla) que choca de
 // nombre con la del dominio: se importa con alias.
 import pe.edu.upeu.pharmamobile.db.Producto as ProductoEntity
+
+/** Fila de la cola de envío: el producto y cuántas veces ya se intentó enviarlo. */
+data class FilaPorEnviar(val producto: Producto, val intentos: Int)
 
 /**
  * Concentra las consultas de la tabla producto y traduce entre filas y dominio.
@@ -82,6 +87,41 @@ class ProductoLocal(base: PharmaDb) {
 
     fun registrarSincronizacion(instante: Long) {
         sincronizacion.guardarUltima(instante)
+    }
+
+    // --- Cola de envío (sesión 13) ------------------------------------------
+
+    fun porEnviar(maxIntentos: Int): List<FilaPorEnviar> =
+        consultas.listarPorEnviar(maxIntentos.toLong())
+            .executeAsList()
+            .map { FilaPorEnviar(it.aDominio(), it.intentos.toInt()) }
+
+    fun contarPorEnviar(maxIntentos: Int): Int =
+        consultas.contarPorEnviar(maxIntentos.toLong()).executeAsOne().toInt()
+
+    /** Consultas observables: la barra se actualiza sola, igual que la lista. */
+    fun observarPorEnviar(maxIntentos: Int): Flow<Int> =
+        consultas.contarPorEnviar(maxIntentos.toLong())
+            .asFlow()
+            .mapToOne(Dispatchers.Default)
+            .map { it.toInt() }
+
+    fun observarFallidas(maxIntentos: Int): Flow<List<EnvioFallido>> =
+        consultas.listarFallidas(maxIntentos.toLong())
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+            .map { filas -> filas.map { EnvioFallido(it.id, it.nombre, it.ultimoError ?: "Sin detalle") } }
+
+    fun sumarIntento(id: Long, motivo: String) {
+        consultas.sumarIntento(motivo = motivo, id = id)
+    }
+
+    fun marcarFallida(id: Long, motivo: String, maxIntentos: Int) {
+        consultas.marcarFallida(maxIntentos = maxIntentos.toLong(), motivo = motivo, id = id)
+    }
+
+    fun reiniciarIntentos() {
+        consultas.reiniciarIntentos()
     }
 
     private fun escribir(p: Producto, pendiente: Boolean) {

@@ -1,13 +1,18 @@
 -- Copia local del catálogo: la pantalla lee SIEMPRE de aquí (fuente de verdad).
--- activo:    1 = activo, 0 = dado de baja (mismo significado que Producto.activo).
--- pendiente: 1 = creado o editado sin conexión; PharmaSoft todavía no lo conoce.
+-- activo:      1 = activo, 0 = dado de baja (mismo significado que Producto.activo).
+-- pendiente:   1 = creado o editado sin conexión; PharmaSoft todavía no lo conoce.
+-- intentos:    veces que se intentó enviar la fila y falló por una causa transitoria (S13).
+-- ultimoError: motivo del último fallo, para mostrárselo al usuario (S13).
+-- Una fila con pendiente = 1 e intentos >= máximo está FALLIDA: ya no se reintenta sola.
 CREATE TABLE producto (
-    id        INTEGER NOT NULL PRIMARY KEY,
-    nombre    TEXT    NOT NULL,
-    precio    REAL    NOT NULL,
-    stock     INTEGER NOT NULL,
-    activo    INTEGER NOT NULL DEFAULT 1,
-    pendiente INTEGER NOT NULL DEFAULT 0
+    id          INTEGER NOT NULL PRIMARY KEY,
+    nombre      TEXT    NOT NULL,
+    precio      REAL    NOT NULL,
+    stock       INTEGER NOT NULL,
+    activo      INTEGER NOT NULL DEFAULT 1,
+    pendiente   INTEGER NOT NULL DEFAULT 0,
+    intentos    INTEGER NOT NULL DEFAULT 0,
+    ultimoError TEXT
 );
 
 listarTodos:
@@ -19,6 +24,8 @@ SELECT * FROM producto WHERE pendiente = 1;
 obtenerPorId:
 SELECT * FROM producto WHERE id = ?;
 
+-- Al reescribir una fila, intentos y ultimoError vuelven a sus valores por defecto:
+-- si el usuario edita un producto fallido, vuelve a la cola desde cero.
 insertar:
 INSERT OR REPLACE INTO producto(id, nombre, precio, stock, activo, pendiente)
 VALUES (?, ?, ?, ?, ?, ?);
@@ -34,3 +41,30 @@ DELETE FROM producto WHERE pendiente = 0;
 -- garantiza que el id resultante sea siempre negativo.
 siguienteIdLocal:
 SELECT COALESCE(MIN(id), 0) FROM producto;
+
+-- ===== Cola de envío (sesión 13) =====
+
+-- Los ids locales bajan (-1, -2, ...): id DESC envía primero lo más antiguo.
+listarPorEnviar:
+SELECT * FROM producto
+WHERE pendiente = 1 AND intentos < :maxIntentos
+ORDER BY id DESC;
+
+contarPorEnviar:
+SELECT COUNT(*) FROM producto WHERE pendiente = 1 AND intentos < :maxIntentos;
+
+listarFallidas:
+SELECT id, nombre, ultimoError FROM producto
+WHERE pendiente = 1 AND intentos >= :maxIntentos
+ORDER BY id DESC;
+
+sumarIntento:
+UPDATE producto SET intentos = intentos + 1, ultimoError = :motivo WHERE id = :id;
+
+-- Fallo permanente (400, 404, 409, 403): reintentar daría lo mismo.
+marcarFallida:
+UPDATE producto SET intentos = :maxIntentos, ultimoError = :motivo WHERE id = :id;
+
+-- «Reintentar ahora» desde el diálogo de envíos fallidos.
+reiniciarIntentos:
+UPDATE producto SET intentos = 0, ultimoError = NULL WHERE pendiente = 1;
