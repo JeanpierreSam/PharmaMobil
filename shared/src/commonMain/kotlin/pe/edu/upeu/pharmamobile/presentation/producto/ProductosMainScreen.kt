@@ -56,6 +56,7 @@ import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
 import pe.edu.upeu.pharmamobile.platform.ahoraEnMilis
+import pe.edu.upeu.pharmamobile.presentation.avisos.TarjetaAvisosStock
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoScreen
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
@@ -168,6 +169,12 @@ fun ProductosMainScreen(
                                         text = { Text(tab.titulo) }
                                     )
                                 }
+                            }
+
+                            // Sesión 13: el permiso se pide donde el usuario ve el stock bajo,
+                            // no al abrir la app.
+                            if (TabProducto.entries[tabSeleccionada] == TabProducto.BAJO_STOCK) {
+                                TarjetaAvisosStock(productosBajoStock = productosFiltrados.size)
                             }
 
                             if (productosFiltrados.isEmpty()) {

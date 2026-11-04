@@ -34,6 +34,7 @@ import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RestaurarSesionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobile.presentation.avisos.AvisosStockViewModel
 import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.diagnostico.DiagnosticoSesionViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
@@ -82,6 +83,7 @@ val presentationModule = module {
     viewModelOf(::ProductoViewModel)
     viewModelOf(::DetalleProductoViewModel)
     viewModelOf(::DiagnosticoSesionViewModel)
+    viewModelOf(::AvisosStockViewModel)
     viewModel { SesionViewModel(get(), get(), get(), get(), get(named(ES_DEPURACION))) }
 }
 
