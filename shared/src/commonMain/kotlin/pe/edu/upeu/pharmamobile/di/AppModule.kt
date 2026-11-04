@@ -7,6 +7,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import pe.edu.upeu.pharmamobile.data.firebase.TelemetriaFirebase
 import pe.edu.upeu.pharmamobile.data.local.AlmacenSeguro
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.local.PerfilLocal
@@ -19,6 +20,7 @@ import pe.edu.upeu.pharmamobile.data.repository.AuthRepositorioRest
 import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioOffline
 import pe.edu.upeu.pharmamobile.data.repository.ProductoRepositorioRest
 import pe.edu.upeu.pharmamobile.db.PharmaDb
+import pe.edu.upeu.pharmamobile.domain.port.Telemetria
 import pe.edu.upeu.pharmamobile.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
@@ -61,6 +63,8 @@ val dataModule = module {
         ProductoRepositorioRest(get(), CATEGORIA_POR_DEFECTO) { mensaje -> auth.cerrarSesion(mensaje) }
     }
     single<ProductoRepository> { ProductoRepositorioOffline(get(), get()) }
+    // Sesión 13: Firebase queda detrás de la interfaz del dominio.
+    single<Telemetria> { TelemetriaFirebase() }
 }
 
 val domainModule = module {
