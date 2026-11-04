@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.domain.model.Producto
@@ -33,6 +34,13 @@ fun TarjetaAvisosStock(
     viewModel: AvisosStockViewModel = koinViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+
+    // Al volver de Ajustes la pantalla se reanuda: se vuelve a consultar el estado.
+    // Sin esto, el permiso activado en Ajustes no se reflejaba hasta cambiar de pestaña (H11).
+    LifecycleResumeEffect(Unit) {
+        viewModel.actualizarEstado()
+        onPauseOrDispose { }
+    }
 
     Card(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
