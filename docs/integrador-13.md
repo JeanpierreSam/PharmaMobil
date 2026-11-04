@@ -1,22 +1,34 @@
 # Proyecto integrador · Sesión 13
 
-Recorrido del 04-11-2026, Android, rama `feature/integrador-13`.
-
-> Nota de método: la columna «Qué se observó» sale de la revisión del código de las sesiones 8 a 12.
-> Falta confirmarla en el emulador (API 36) y adjuntar las capturas.
+Recorrido del 04-11-2026 en el emulador Pixel_8 (Android 14, API 34), rama `feature/integrador-13`,
+contra PharmaSoft en local. El paso 1 se había escrito revisando el código; esta versión registra lo
+que de verdad se vio con la app ya integrada.
 
 ## Recorrido (paso 1 de la guía práctica)
 
 | N.º | Momento | Qué se observó |
 |---|---|---|
-| 1 | Primera apertura, sin sesión | Pantalla de login; la base `pharma.db` existe con las tablas vacías. Se puede salir (no hay callejón). |
-| 2 | Credenciales incorrectas | «Usuario o contraseña incorrectos»; con PharmaSoft apagado el mensaje es distinto (sin conexión). Bien distinguido. |
-| 3 | Listado con la base vacía | Texto propio «Todavía no hay productos registrados» / «Aún no hay datos guardados…». No parece error. |
-| 4 | Creación en modo avión | Se guarda con id negativo y etiqueta «Pendiente de envío». La barra no dice cuántos cambios faltan. |
-| 5 | Sincronización al recuperar la señal | No es automática: hay que pulsar ⟳. Llega sin duplicarse (confirmarSubida, S11). |
-| 6 | Error de validación del servidor | Con red el 400 llega bajo su campo (S8). Pero un producto creado **sin red** que luego PharmaSoft rechaza (409 nombre repetido) queda «Pendiente de envío» para siempre y se reenvía en cada sincronización sin avisar. |
-| 7 | Token vencido a mitad de un formulario | Al guardar llega el 401, la app vuelve al login y se pierde lo escrito. |
-| 8 | Cierre de sesión | Se borran el token y el perfil, pero el catálogo y los pendientes quedan en `pharma.db`. |
+| 1 | Primera apertura, sin sesión | Pantalla de login. `pharma.db` **todavía no existe**: el driver la crea con la primera consulta, tras iniciar sesión. |
+| 2 | Credenciales incorrectas | «Usuario o contraseña incorrectos.» Con PharmaSoft apagado el mensaje es otro: «Sin conexión con el servidor…». Bien distinguido. |
+| 3 | Listado con la base vacía | «Aún no hay datos guardados en este dispositivo…» y «Nunca sincronizado: los datos pueden estar incompletos». No parece error. |
+| 4 | Creación en modo avión | Id negativo y etiqueta «Pendiente de envío»; la barra dice «· 1 cambio por enviar». |
+| 5 | Sincronización al recuperar la señal | No es automática: hay que pulsar ⟳. Llega con id real y sin duplicarse. |
+| 6 | Error de validación del servidor | Nombre de una letra: 400 con el mensaje bajo su campo. Un alta sin red que PharmaSoft rechaza (409) queda «No se pudo enviar», con *Revisar*. |
+| 7 | Token vencido a mitad de un formulario | **Alta:** vuelve al login y el producto queda pendiente (id -1); se envía tras entrar, no se pierde. **Edición:** vuelve al login y el cambio se pierde (stock 77 escrito, sigue en 40). |
+| 8 | Cierre de sesión | Se borran el token y el perfil; las 14 filas siguen en `pharma.db`. |
+
+Migración comprobada en el emulador: una base en versión 1 con 15 filas pasó a la versión 2 al abrirse
+tras el login, con las 15 filas intactas, y su pendiente se envió con id real.
+
+## Bitácora de permisos: POST_NOTIFICATIONS
+
+| Estado | Qué ve el usuario | Cómo recupera la función |
+|---|---|---|
+| Concedido | «Avisos activados» y *Enviar aviso ahora*; la notificación llega | No hace falta |
+| Denegado | La explicación y *Activar avisos* otra vez | Vuelve a pulsar *Activar avisos* |
+| Denegado para siempre | «Los avisos están bloqueados…» y *Abrir Ajustes*; el sistema ya no muestra el diálogo | *Abrir Ajustes* → Notifications → activar |
+
+El sistema mostró el diálogo dos veces: «Allow PharmaMobil to send you notifications?».
 
 ## Huecos (estado al 04-11-2026)
 
