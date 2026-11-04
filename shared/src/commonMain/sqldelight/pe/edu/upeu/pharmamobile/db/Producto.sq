@@ -1,0 +1,36 @@
+-- Copia local del catálogo: la pantalla lee SIEMPRE de aquí (fuente de verdad).
+-- activo:    1 = activo, 0 = dado de baja (mismo significado que Producto.activo).
+-- pendiente: 1 = creado o editado sin conexión; PharmaSoft todavía no lo conoce.
+CREATE TABLE producto (
+    id        INTEGER NOT NULL PRIMARY KEY,
+    nombre    TEXT    NOT NULL,
+    precio    REAL    NOT NULL,
+    stock     INTEGER NOT NULL,
+    activo    INTEGER NOT NULL DEFAULT 1,
+    pendiente INTEGER NOT NULL DEFAULT 0
+);
+
+listarTodos:
+SELECT * FROM producto ORDER BY nombre ASC;
+
+listarPendientes:
+SELECT * FROM producto WHERE pendiente = 1;
+
+obtenerPorId:
+SELECT * FROM producto WHERE id = ?;
+
+insertar:
+INSERT OR REPLACE INTO producto(id, nombre, precio, stock, activo, pendiente)
+VALUES (?, ?, ?, ?, ?, ?);
+
+borrarPorId:
+DELETE FROM producto WHERE id = ?;
+
+-- Solo lo que ya conoce el servidor: lo pendiente sobrevive a la bajada.
+borrarSincronizados:
+DELETE FROM producto WHERE pendiente = 0;
+
+-- COALESCE evita el NULL de la tabla vacía; el minOf de Kotlin
+-- garantiza que el id resultante sea siempre negativo.
+siguienteIdLocal:
+SELECT COALESCE(MIN(id), 0) FROM producto;

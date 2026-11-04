@@ -8,7 +8,7 @@ productos, pedidos e inventario farmacéutico.
 - Compose Multiplatform
 - Material 3 (theming corporativo, modo claro/oscuro)
 
-## Estado actual (Sesión 10 — Autenticación JWT)
+## Estado actual (Sesión 11 — Persistencia offline-first)
 - Módulo de Productos en capas Clean Architecture + MVVM con Koin (Sesión 5).
 - CRUD completo de productos (listar, obtener, crear, actualizar y dar de baja)
   contra el backend del curso **PharmaSoft**, con Ktor Client; ver
@@ -23,6 +23,9 @@ productos, pedidos e inventario farmacéutico.
   [Código específico de plataforma](#código-específico-de-plataforma).
 - Login con JWT contra PharmaSoft, token en almacén seguro por plataforma y
   permisos en la interfaz; ver [Autenticación](#autenticación).
+- Catálogo guardado en SQLite con SQLDelight: la app lista, registra y abre
+  sesión sin red, y sincroniza al reconectar; ver
+  [Persistencia offline-first](#persistencia-offline-first).
 
 ## Conexión con PharmaSoft
 
@@ -253,6 +256,65 @@ que se comparte, la decisión de estados de `ProductoUiState`) se quedan en
 importa `android.*` ni `platform.*`. `InfoDispositivo` es una `expect class`
 (Beta en Kotlin 2.x), por eso `shared/build.gradle.kts` agrega
 `-Xexpect-actual-classes`.
+
+## Persistencia offline-first
+
+La pantalla de Productos ya no lee de PharmaSoft: lee de una base SQLite local
+(`pharma.db`) que es la **fuente de verdad**. La red solo la mantiene al día.
+
+**Esquema** (`shared/src/commonMain/sqldelight/pe/edu/upeu/pharmamobile/db/`):
+
+| Tabla | Para qué | Columnas clave |
+|---|---|---|
+| `producto` | Copia local del catálogo | `activo` (baja lógica), `pendiente` (1 = PharmaSoft aún no lo tiene) |
+| `sincronizacion` | Instante de la última sincronización correcta («Actualizado hace…») | fila única `id = 1` |
+| `perfil` | Usuario y permisos de la última sesión verificada (sin el token) | fila única `id = 1` |
+
+**Drivers.** Las consultas son comunes; cada plataforma solo abre el archivo
+(`CreadorDeDriver`): `AndroidSqliteDriver` en Android y `NativeSqliteDriver` en
+iOS (en Xcode: *Other Linker Flags* = `-lsqlite3`). Las pruebas usan una base en
+memoria nueva por prueba, también con expect/actual (`JdbcSqliteDriver` en la
+JVM, `inMemoryDriver` en iOS).
+
+**Flujo.** `ProductoRepositorioOffline` implementa `ProductoRepository`:
+
+- `observar()` devuelve el `Flow` de la tabla; el ViewModel se suscribe una vez
+  y ninguna operación vuelve a pedir la lista.
+- `sincronizar()` **primero sube** lo pendiente y **después baja** la lista del
+  servidor. La bajada borra solo las filas con `pendiente = 0`, en una
+  transacción: lo creado sin red nunca se pierde y la lista no parpadea.
+- `registrar()` guarda primero en local. Sin red el producto queda con un **id
+  negativo** (`-1`, `-2`…), un espacio que PharmaSoft nunca usa, y la tarjeta
+  muestra «Pendiente de envío». Con red, si el POST responde, la fila `-1` se
+  cambia por la del servidor (`confirmarSubida`); si PharmaSoft lo rechaza
+  (400/409) se borra y el error sigue apareciendo bajo su campo.
+- `ProductoRepositorioRest` se reutiliza como «remoto»: ya traduce Ktor a
+  `ErrorApi` y cierra la sesión ante un 401.
+
+**Qué funciona sin red:** listar, ver el detalle, abrir el formulario de
+edición, registrar productos nuevos y editar o quitar los que siguen
+pendientes. Editar o dar de baja un producto que ya existe en PharmaSoft sigue
+necesitando red (se muestra «Sin conexión…» y no se pierde nada).
+
+**Sesión sin red.** Al abrir la app, `/auth/me` no se puede llamar sin red. En
+lugar de mandar al login, `AuthRepositorioRest` entra con el `perfil` guardado;
+el token sigue en el almacén seguro. Si ya expiró, el primer 401 al reconectar
+cierra la sesión y lo pendiente se envía tras el nuevo login. El único paso que
+exige red es el primer inicio de sesión.
+
+**Limitación:** `ProductoApi.listar()` pide una página de 20; con más productos
+en PharmaSoft, la base local solo guarda la primera página.
+
+**Pruebas** (`ProductoRepositorioOfflineTest`, con `PharmaSoftFalso` sobre
+`MockEngine`): sincronización con red, registro sin red, envío al reconectar,
+la bajada conserva lo pendiente, ids locales sin colisión y sincronizar dos
+veces no duplica. `UltimaSincronizacionTest` y `AntiguedadTest` cubren la
+barra «Actualizado hace…» (tabla `sincronizacion`, fila única con el instante
+de la última sincronización correcta; si falla, no se toca).
+
+```powershell
+.\gradlew.bat :shared:testAndroidHostTest --rerun-tasks
+```
 
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
