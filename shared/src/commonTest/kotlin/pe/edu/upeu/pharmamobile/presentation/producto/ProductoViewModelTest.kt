@@ -20,6 +20,8 @@ import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.platform.MonitorRed
+import pe.edu.upeu.pharmamobile.platform.FakeMonitorRed
 import pe.edu.upeu.pharmamobile.platform.FakeTelemetria
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -28,7 +30,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /** Arma el ViewModel con todos sus casos de uso sobre el mismo repositorio falso. */
-internal fun viewModelCon(repo: FakeProductoRepository) = ProductoViewModel(
+internal fun viewModelCon(repo: FakeProductoRepository, red: MonitorRed = FakeMonitorRed()) = ProductoViewModel(
     ObservarProductosUseCase(repo),
     SincronizarProductosUseCase(repo, FakeTelemetria()),
     ObtenerProductoUseCase(repo),
@@ -38,7 +40,8 @@ internal fun viewModelCon(repo: FakeProductoRepository) = ProductoViewModel(
     ObservarUltimaSincronizacionUseCase(repo),
     ObservarEstadoEnvioUseCase(repo),
     ReintentarEnviosFallidosUseCase(repo),
-    DescartarEnvioUseCase(repo)
+    DescartarEnvioUseCase(repo),
+    red
 )
 
 /**

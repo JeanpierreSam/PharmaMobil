@@ -13,7 +13,9 @@ import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriverAndroid
 import pe.edu.upeu.pharmamobile.domain.permiso.GestorPermisos
 import pe.edu.upeu.pharmamobile.domain.platform.Compartidor
+import pe.edu.upeu.pharmamobile.domain.platform.MonitorRed
 import pe.edu.upeu.pharmamobile.domain.platform.Notificador
+import pe.edu.upeu.pharmamobile.platform.MonitorRedAndroid
 import pe.edu.upeu.pharmamobile.permiso.GestorPermisosAndroid
 import pe.edu.upeu.pharmamobile.platform.CompartidorAndroid
 import pe.edu.upeu.pharmamobile.platform.NotificadorAndroid
@@ -34,6 +36,7 @@ actual val platformModule = module {
     }
     single<GestorPermisos> { get<GestorPermisosAndroid>() }
     single<Notificador> { NotificadorAndroid(androidContext()) }
+    single<MonitorRed> { MonitorRedAndroid(androidContext()) }
     single(named(ES_DEPURACION)) {
         (androidContext().applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
