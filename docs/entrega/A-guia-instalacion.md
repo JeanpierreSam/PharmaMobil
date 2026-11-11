@@ -42,6 +42,8 @@ La migración `V3__datos_iniciales_seguridad.sql` crea tres usuarios de **prueba
 | `vendedor` | VENDEDOR | `Vendedor123` | Ver el catálogo de productos; no puede crear, editar ni dar de baja |
 | `almacen` | ALMACENERO | `Almacen123` | Ver y gestionar productos y stock |
 
+No se puede entrar sin credenciales: el login las valida contra PharmaSoft, y un usuario o contraseña inventados dan «Usuario o contraseña incorrectos.». Hay que usar uno de los tres usuarios de la tabla.
+
 Categoría usada por la app: «Analgésicos» (id 1), que la base inicial ya trae.
 
 ## 4. Instalar en Android
@@ -64,10 +66,10 @@ No se probó: el equipo no dispone de Mac. Pasos y evidencia alternativa en `doc
 | Login (error) | `admin` con una clave incorrecta | «Usuario o contraseña incorrectos.» |
 | Productos | Abrir desde el menú | Lista de PharmaSoft y «Actualizado hace un momento» |
 | Nuevo producto | Botón + → completar → Registrar | Aparece en la lista con estado «Activo» |
-| Modo avión | Activar y crear otro producto | «Pendiente de envío» y «1 cambio por enviar» |
-| Volver la red | Desactivar el modo avión | Se sincroniza; el pendiente toma su id real |
+| Modo avión | Con la sesión ya iniciada, activar el modo avión del teléfono y crear otro producto | La app no se bloquea: el producto se guarda en el teléfono con «Pendiente de envío» y la barra dice «1 cambio por enviar». Solo el primer login exige conexión |
+| Volver la red | Desactivar el modo avión y reconectar a la zona con cobertura | Se sincroniza; el pendiente toma su id real |
 | Bajo Stock | Pestaña → *Activar avisos* → Permitir | Se concede el permiso de notificaciones |
-| Cerrar sesión | Icono de salir | Si hay pendientes, pregunta «Cambios sin enviar»; luego vuelve al login |
+| Cerrar sesión | Icono de salir | Si hay pendientes, pregunta «Cambios sin enviar»; luego vuelve al login. No hace falta cerrar la aplicación: con la red de vuelta se puede iniciar sesión de nuevo sin salir de ella |
 
 <Pegar bajo cada fila la captura numerada (A-01…A-08).>
 
@@ -75,6 +77,7 @@ No se probó: el equipo no dispone de Mac. Pasos y evidencia alternativa en `doc
 
 | Síntoma | Causa | Solución |
 |---|---|---|
+| No puedo iniciar sesión y el teléfono no está en el internet de la laptop | El login necesita llegar a PharmaSoft, que corre en el PC; no hace falta internet general, pero sí estar en la red de la zona con cobertura del PC | Conectar el teléfono a esa red y comprobar `/api/health` en su navegador |
 | «Sin conexión con el servidor» en el login, con Wi-Fi | El teléfono no llega al PC | Probar `/api/health` en el navegador del teléfono; activar la regla del cortafuegos; usar la zona con cobertura (la Wi-Fi de la universidad aísla equipos) |
 | El navegador del teléfono tarda y no responde | El teléfono no está en la red de la zona con cobertura, o los datos móviles tomaron el control | Conectar a la red del PC; desactivar los datos móviles mientras se prueba |
 | La IP del PC es `192.168.137.2` | VMware VMnet1 ocupa la `.1` | Deshabilitar el adaptador (`Disable-NetAdapter -Name "VMware Network Adapter VMnet1"`) y reiniciar la zona |
@@ -86,5 +89,5 @@ No se probó: el equipo no dispone de Mac. Pasos y evidencia alternativa en `doc
 
 | Probó | Equipo | Fecha | Pasos que tuvo que preguntar o no pudo seguir | Corrección hecha en la guía |
 |---|---|---|---|---|
-| Julio (ajeno al proyecto) | Sin equipo asignado | 11-11-2026, 16:17 a 16:25 | **No siguió esta guía**: esta versión se terminó el 13-11-2026. Instaló y probó el APK en su Samsung Galaxy A12 (Android 13) con el resto de las instrucciones dadas de palabra; sus capturas están en el Producto C | Ninguna todavía |
+| Julio (ajeno al proyecto) | Sin equipo asignado | 11-11-2026, 16:17 a 16:25 | **No siguió esta guía**: esta versión se terminó el 13-11-2026. Instaló y probó el APK en su Samsung Galaxy A12 (Android 13) con el resto de las instrucciones dadas de palabra; sus capturas están en el Producto C. Preguntas que hizo (según relato de Jeanpierre): 1) «¿Se puede iniciar sin credenciales?» (probó un usuario y clave sin que se las dieran; luego recibió las de `admin` y entró); 2) «¿Necesito internet para loguearme?» (no estaba en la red del PC y no pudo entrar); 3) «¿Qué pasa luego de poner el modo avión?» (se le indicó activarlo, como en la prueba de la GP); 4) «¿Por qué tengo que salir de la aplicación luego de cerrar sesión?» (la indicación decía salir; se le pidió probar reconectándose sin salir y entró normal) | 13-11-2026, a partir de esas preguntas: aviso de credenciales en §3; fila de login sin red en §7; el modo avión y el cierre de sesión aclarados en §6 (no hace falta cerrar la aplicación) |
 | <Nombre del compañero> | <Equipo M> | <fecha real> | *Pendiente: prueba siguiendo esta guía, sin ayuda* | *Pendiente* |
