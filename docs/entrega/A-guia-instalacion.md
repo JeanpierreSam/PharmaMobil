@@ -76,7 +76,18 @@ No se probó: el equipo no dispone de Mac. Pasos y evidencia alternativa en `doc
 | Bajo Stock | Pestaña → *Activar avisos* → Permitir | Se concede el permiso de notificaciones |
 | Cerrar sesión | Icono de salir | Si hay pendientes, pregunta «Cambios sin enviar»; luego vuelve al login. No hace falta cerrar la aplicación: con la red de vuelta se puede iniciar sesión de nuevo sin salir de ella |
 
-<Pegar bajo cada fila la captura numerada (A-01…A-08).>
+Capturas del recorrido, tomadas el 11-11-2026 en el Samsung Galaxy A56 5G de Jeanpierre (Android 16):
+
+| N.º | Pantalla | Captura |
+|---|---|---|
+| A-01 | Inicio tras el login con `admin` | ![A-01](capturas/A-01.jpg) |
+| A-02 | Login con clave incorrecta | ![A-02](capturas/A-02.jpg) |
+| A-03 | Lista de productos | ![A-03](capturas/A-03.jpg) |
+| A-04 | Nuevo producto registrado | ![A-04](capturas/A-04.jpg) |
+| A-05 | Modo avión: «Pendiente de envío» | ![A-05](capturas/A-05.jpg) |
+| A-06 | Red de vuelta: sincronizado | ![A-06](capturas/A-06.jpg) |
+| A-07 | Bajo Stock: solicitud del permiso de notificaciones (solo el aviso del sistema; no se capturó el estado concedido) | ![A-07](capturas/A-07.jpg) |
+| A-08 | Cerrar sesión con un pendiente | ![A-08](capturas/A-08.jpg) |
 
 ## 7. Problemas frecuentes
 
@@ -95,4 +106,4 @@ No se probó: el equipo no dispone de Mac. Pasos y evidencia alternativa en `doc
 | Probó | Equipo | Fecha | Pasos que tuvo que preguntar o no pudo seguir | Corrección hecha en la guía |
 |---|---|---|---|---|
 | Julio (ajeno al proyecto) | Sin equipo asignado | 11-11-2026, 16:17 a 16:25 | **No siguió esta guía**: esta versión se terminó el 13-11-2026. Instaló y probó el APK en su Samsung Galaxy A12 (Android 13) con el resto de las instrucciones dadas de palabra; sus capturas están en el Producto C. Preguntas que hizo (según relato de Jeanpierre): 1) «¿Se puede iniciar sin credenciales?» (probó un usuario y clave sin que se las dieran; luego recibió las de `admin` y entró); 2) «¿Necesito internet para loguearme?» (no estaba en la red del PC y no pudo entrar); 3) «¿Qué pasa luego de poner el modo avión?» (se le indicó activarlo, como en la prueba de la GP); 4) «¿Por qué tengo que salir de la aplicación luego de cerrar sesión?» (la indicación decía salir; se le pidió probar reconectándose sin salir y entró normal) | 13-11-2026, a partir de esas preguntas: aviso de credenciales en §3; fila de login sin red en §7; el modo avión y el cierre de sesión aclarados en §6 (no hace falta cerrar la aplicación) |
-| <Nombre del compañero> | <Equipo M> | <fecha real> | *Pendiente: prueba siguiendo esta guía, sin ayuda* | *Pendiente* |
+| Julio (ajeno al proyecto) | Sin equipo asignado | <fecha real> | *Pendiente: prueba siguiendo esta guía, sin ayuda* | *Pendiente* |
