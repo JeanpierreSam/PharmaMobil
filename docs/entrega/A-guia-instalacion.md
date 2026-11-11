@@ -27,7 +27,12 @@ Para quien no conoce el proyecto. Tiempo estimado: 30–40 minutos.
    ```
    - Usuario `PHARMADB` en `FREEPDB1`, puerto 1522 (`application-dev.yaml`).
    - Flyway crea el esquema y los datos iniciales en el primer arranque (V1–V3).
-   - Primera vez, si el contenedor no existe: <completar: comando con el que se creó `oracle-local` y cómo se creó el usuario PHARMADB>.
+   - Primera vez, si el contenedor no existe (reconstruido a partir de `docker inspect` del contenedor del equipo: imagen, puerto y variable `ORACLE_PWD`; sin volumen, por lo que los datos viven dentro del contenedor y se pierden si se elimina):
+     ```powershell
+     docker run -d --name oracle-local -p 1522:1521 -e ORACLE_PWD=<clave del administrador> container-registry.oracle.com/database/free:latest
+     ```
+     Oracle tarda unos minutos en quedar listo (`docker ps` debe mostrar «healthy»).
+   - El usuario `PHARMADB` no lo crea ninguna migración del backend: en el contenedor del equipo ya existía. En un contenedor nuevo hay que crearlo antes de arrancar PharmaSoft, con permisos sobre `FREEPDB1` y la contraseña que figura en `application-dev.yaml` del backend.
 3. Comprobar: `http://localhost:8080/api/health` responde «Backend funcionando correctamente»; Swagger en `http://localhost:8080/swagger-ui.html`.
 4. Abrir el puerto en el cortafuegos (PowerShell como administrador, una sola vez):
    `New-NetFirewallRule -DisplayName "PharmaSoft 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow`
