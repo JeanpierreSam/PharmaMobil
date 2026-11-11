@@ -9,6 +9,15 @@ val locales = Properties().apply {
 }
 val urlPharmaSoft: String = locales.getProperty("pharmasoft.url") ?: "http://10.0.2.2:8080/api/v1/"
 
+// Sesión 14: credenciales de firma en un archivo que Git ignora.
+// Si no existe (quien clona el repo), la config «release» ni se crea: la compilación
+// de depuración sigue funcionando y bundleRelease produce un archivo SIN firmar.
+val firma = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val hayFirma = firma.getProperty("storeFile") != null
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
@@ -47,9 +56,20 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        if (hayFirma) {
+            create("release") {
+                storeFile = file(firma.getProperty("storeFile"))
+                storePassword = firma.getProperty("storePassword")
+                keyAlias = firma.getProperty("keyAlias")
+                keyPassword = firma.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            if (hayFirma) signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
