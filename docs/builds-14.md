@@ -29,18 +29,19 @@ las pruebas de esta sesión y se ajusta la configuración de compilación.
 |---|---|
 | applicationId | `pe.edu.upeu.pharmamobile` (no `pe.upeu.pharmamobil`: lo exige el registro de Firebase) |
 | versionName · versionCode | 1.0.0 · 1 |
-| Paquete de aplicación | `Equipo12_ProyectoFinal_Android.aab` — *pendiente: se genera al crear el almacén de claves* |
-| Instalable de revisión | `Equipo12_ProyectoFinal_Android.apk` — *pendiente* |
+| Paquete de aplicación | `Equipo12_ProyectoFinal_Android.aab` (7,24 MB) |
+| Instalable de revisión | `Equipo12_ProyectoFinal_Android.apk` (3,64 MB) |
 | Titular del certificado | `CN=PharmaMobil Equipo 12, OU=EP Ingenieria de Sistemas, O=Universidad Peruana Union, L=Lima, ST=Lima, C=PE` |
-| Huella SHA-256 | *pendiente: copiar de `apksigner verify --print-certs`* |
-| Validez | *pendiente: `keytool -list -v`* |
-| Esquemas de firma (APK) | *pendiente* |
-| Copia del almacén | *pendiente: dónde, sin ruta completa ni contraseñas* |
+| Huella SHA-256 | `F8:C3:84:04:83:D9:29:C2:D5:86:7B:E4:85:15:B4:07:A8:76:A4:7E:C1:E5:D2:22:C3:51:D8:92:B4:B3:33:9B` (idéntica en el `.apk` con `apksigner` y en el `.aab` con `keytool -printcert -jarfile`) |
+| Validez | 11-11-2026 14:38 – 29-03-2054 |
+| Esquemas de firma (APK) | v2 true · v3 false (v1 false, v4 false) |
+| Copia del almacén | *pendiente: dónde se guardó la copia (sin ruta completa ni contraseñas)* |
+| URL de PharmaSoft del build | `http://192.168.137.1:8080/api/v1/` (zona con cobertura de Windows) |
 | Minificación | Activada (R8). Ver la sección siguiente |
 
 Estado al 11-11-2026: la configuración de firma está lista (`keystore.properties`, ignorado por Git);
 sin ese archivo, `assembleRelease` produce `androidApp-release-unsigned.apk`. Los artefactos firmados
-se generan cuando existe el almacén.
+se generaron el 11-11-2026 a las 14:58 con el almacén del equipo.
 
 ## Minificación (11-11-2026)
 
