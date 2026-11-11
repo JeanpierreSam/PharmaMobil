@@ -8,7 +8,7 @@ productos, pedidos e inventario farmacéutico.
 - Compose Multiplatform
 - Material 3 (theming corporativo, modo claro/oscuro)
 
-## Estado actual (Sesión 13 — Proyecto integrador)
+## Estado actual (Sesión 14 — Entrega final, 1.0.0)
 - Módulo de Productos en capas Clean Architecture + MVVM con Koin (Sesión 5).
 - CRUD completo de productos (listar, obtener, crear, actualizar y dar de baja)
   contra el backend del curso **PharmaSoft**, con Ktor Client; ver
@@ -378,6 +378,21 @@ Sin ese archivo el proyecto abre y compila igual (debug); `bundleRelease` produc
 ```
 
 La URL de PharmaSoft se define en `local.properties` (`pharmasoft.url=...`); sin ella apunta al emulador.
+
+### Instalación en dispositivos reales
+Ver `docs/entrega/A-guia-instalacion.md`. Resumen: PharmaSoft en el PC, zona con cobertura de
+Windows (PC = `192.168.137.1`), `pharmasoft.url` en `local.properties` y la IP en
+`network_security_config.xml`.
+
+### Cambios de la sesión 14
+- H7: sincroniza sola al volver la red (`MonitorRed`; Android con `ConnectivityManager`, iOS asume red).
+- H8: el cierre de sesión voluntario advierte los cambios sin enviar y limpia la base local.
+  El cierre por token vencido conserva lo pendiente.
+- H14: URL del servicio configurable por build.
+- R8 activado con reglas mínimas (`androidApp/proguard-rules.pro`).
+
+### Documentos de entrega
+`docs/builds-14.md` (firma y minificación) · `docs/ios-14.md` · `docs/entrega/` (A, B, C, D).
 
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
