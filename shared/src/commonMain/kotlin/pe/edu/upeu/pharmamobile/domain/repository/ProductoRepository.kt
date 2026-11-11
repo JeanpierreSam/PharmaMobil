@@ -38,4 +38,10 @@ interface ProductoRepository {
     suspend fun actualizar(producto: Producto): Producto
 
     suspend fun eliminar(id: Long)
+
+    /** Sesión 14: filas que PharmaSoft todavía no conoce (en cola o fallidas). */
+    suspend fun cambiosSinEnviar(): Int
+
+    /** Sesión 14: deja la base vacía al cerrar sesión voluntariamente. */
+    suspend fun borrarDatosLocales()
 }

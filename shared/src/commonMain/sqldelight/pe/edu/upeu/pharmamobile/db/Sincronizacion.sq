@@ -10,3 +10,6 @@ INSERT OR REPLACE INTO sincronizacion(id, ultima) VALUES (1, ?);
 
 leerUltima:
 SELECT ultima FROM sincronizacion WHERE id = 1;
+
+borrarUltima:
+DELETE FROM sincronizacion;

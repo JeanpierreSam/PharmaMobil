@@ -68,3 +68,7 @@ UPDATE producto SET intentos = :maxIntentos, ultimoError = :motivo WHERE id = :i
 -- «Reintentar ahora» desde el diálogo de envíos fallidos.
 reiniciarIntentos:
 UPDATE producto SET intentos = 0, ultimoError = NULL WHERE pendiente = 1;
+
+-- Sesion 14: cierre de sesion voluntario. El equipo queda limpio para otro usuario.
+borrarTodo:
+DELETE FROM producto;
