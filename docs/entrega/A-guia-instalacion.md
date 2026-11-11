@@ -86,4 +86,5 @@ No se probó: el equipo no dispone de Mac. Pasos y evidencia alternativa en `doc
 
 | Probó | Equipo | Fecha | Pasos que tuvo que preguntar o no pudo seguir | Corrección hecha en la guía |
 |---|---|---|---|---|
-| <Nombre del compañero> | <Equipo M> | <fecha real> | <p. ej. «no sabía cómo ver la IP del PC»> | <p. ej. «se agregó ipconfig en 4.1»> |
+| Julio (ajeno al proyecto) | Sin equipo asignado | 11-11-2026, 16:17 a 16:25 | **No siguió esta guía**: esta versión se terminó el 13-11-2026. Instaló y probó el APK en su Samsung Galaxy A12 (Android 13) con el resto de las instrucciones dadas de palabra; sus capturas están en el Producto C | Ninguna todavía |
+| <Nombre del compañero> | <Equipo M> | <fecha real> | *Pendiente: prueba siguiendo esta guía, sin ayuda* | *Pendiente* |
