@@ -67,6 +67,17 @@ class FakeProductoRepository(
         envio = envio.copy(fallidas = envio.fallidas.filterNot { it.id == id })
     }
 
+    var borradosLocales = 0
+        private set
+
+    override suspend fun cambiosSinEnviar(): Int = envio.pendientes + envio.fallidas.size
+
+    override suspend fun borrarDatosLocales() {
+        borradosLocales++
+        tabla.value = emptyList()
+        envio = EstadoEnvio()
+    }
+
     override suspend fun obtener(id: Long): Producto {
         esperarOFallar(fallaAlObtener)
         return tabla.value.first { it.id == id }

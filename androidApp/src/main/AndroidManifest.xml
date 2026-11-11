@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Sesión 14: saber cuándo vuelve la red para sincronizar sola (permiso normal, no se pide). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Sesión 13: avisos de stock bajo. Desde Android 13 se pide en ejecución. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 

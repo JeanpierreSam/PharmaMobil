@@ -12,7 +12,9 @@ import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriverIos
 import pe.edu.upeu.pharmamobile.domain.permiso.GestorPermisos
 import pe.edu.upeu.pharmamobile.domain.platform.Compartidor
+import pe.edu.upeu.pharmamobile.domain.platform.MonitorRed
 import pe.edu.upeu.pharmamobile.domain.platform.Notificador
+import pe.edu.upeu.pharmamobile.platform.MonitorRedIos
 import pe.edu.upeu.pharmamobile.permiso.GestorPermisosIos
 import pe.edu.upeu.pharmamobile.platform.CompartidorIos
 import pe.edu.upeu.pharmamobile.platform.NotificadorIos
@@ -26,6 +28,7 @@ actual val platformModule = module {
     single<CreadorDeDriver> { CreadorDeDriverIos() }
     single<GestorPermisos> { GestorPermisosIos() }
     single<Notificador> { NotificadorIos() }
+    single<MonitorRed> { MonitorRedIos() }
     // Nombre completo: el proyecto ya tiene su propia interfaz Platform (plantilla KMP).
     single(named(ES_DEPURACION)) { kotlin.native.Platform.isDebugBinary }
 }

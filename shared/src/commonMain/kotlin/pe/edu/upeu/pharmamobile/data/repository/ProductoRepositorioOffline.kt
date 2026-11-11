@@ -79,6 +79,12 @@ class ProductoRepositorioOffline(
         local.borrar(id)
     }
 
+    override suspend fun cambiosSinEnviar(): Int = local.pendientes().size
+
+    override suspend fun borrarDatosLocales() {
+        local.borrarTodo()
+    }
+
     /** El formulario de edición y el detalle leen de la base: funcionan sin red. */
     override suspend fun obtener(id: Long): Producto =
         local.obtener(id) ?: throw ErrorApiException(ErrorApi.NoEncontrado)

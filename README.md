@@ -357,6 +357,28 @@ al iniciar.
 `.\gradlew.bat :shared:testAndroidHostTest`: reintento transitorio y permanente, sin red, espera creciente,
 reintentar fallidos, telemetría de la sincronización, avisos de stock con dobles y textos de estado.
 
+## Firma y builds de entrega (sesión 14)
+
+La versión de entrega se firma con el almacén del equipo. Sus credenciales viven en
+`keystore.properties` (raíz del proyecto), que **no se versiona** (`.gitignore`: `keystore.properties`,
+`*.jks`, `*.keystore`). Formato, sin contraseñas:
+
+```properties
+storeFile=C:/ruta/al/almacen.jks      # barras normales, también en Windows
+storePassword=<contraseña del almacén>
+keyAlias=pharmamobil
+keyPassword=<contraseña de la clave>
+```
+
+Sin ese archivo el proyecto abre y compila igual (debug); `bundleRelease` produce un archivo sin firmar.
+
+```powershell
+.\gradlew.bat :androidApp:bundleRelease     # androidApp/build/outputs/bundle/release/androidApp-release.aab
+.\gradlew.bat :androidApp:assembleRelease   # androidApp/build/outputs/apk/release/androidApp-release.apk
+```
+
+La URL de PharmaSoft se define en `local.properties` (`pharmasoft.url=...`); sin ella apunta al emulador.
+
 ## Estructura del proyecto
 - `shared/commonMain`: lógica de negocio y UI compartida (modelos, dominio, presentación)
 - `shared/androidMain`: implementación específica de Android (bindings nativos)

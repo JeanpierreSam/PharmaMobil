@@ -21,3 +21,8 @@ node_modules/
 # Sesión 13: configuración de Firebase de cada integrante (no se versiona)
 androidApp/google-services.json
 iosApp/iosApp/GoogleService-Info.plist
+
+# Sesion 14: firma de entrega (nunca se versiona)
+keystore.properties
+*.jks
+*.keystore

@@ -6,7 +6,9 @@ data class SesionUiState(
     val clave: String = "",
     val cargando: Boolean = false,
     val error: String? = null,   // fallo del intento de login
-    val aviso: String? = null    // por qué terminó la sesión anterior (401)
+    /** Sesión 14: > 0 muestra el diálogo «Cambios sin enviar» antes de salir. */
+    val confirmarSalida: Int = 0,
+    val aviso: String? = null    //por qué terminó la sesión anterior (401)
 ) {
     val puedeIngresar: Boolean get() = usuario.isNotBlank() && clave.isNotBlank()
 }

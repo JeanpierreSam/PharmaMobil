@@ -13,15 +13,15 @@ import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobile.data.local.CreadorDeDriverAndroid
 import pe.edu.upeu.pharmamobile.domain.permiso.GestorPermisos
 import pe.edu.upeu.pharmamobile.domain.platform.Compartidor
+import pe.edu.upeu.pharmamobile.domain.platform.MonitorRed
 import pe.edu.upeu.pharmamobile.domain.platform.Notificador
+import pe.edu.upeu.pharmamobile.platform.MonitorRedAndroid
 import pe.edu.upeu.pharmamobile.permiso.GestorPermisosAndroid
 import pe.edu.upeu.pharmamobile.platform.CompartidorAndroid
 import pe.edu.upeu.pharmamobile.platform.NotificadorAndroid
 
 actual val platformModule = module {
     single<HttpClientEngine> { OkHttp.create() }
-    // El emulador ve al PC anfitrion como 10.0.2.2, no como localhost.
-    single(named(URL_BASE)) { "http://10.0.2.2:8080/api/v1/" }
     single<Compartidor> { CompartidorAndroid(androidContext()) }
     single<AlmacenSeguro> { AlmacenSeguroAndroid(androidContext()) }
     single<CreadorDeDriver> { CreadorDeDriverAndroid(androidContext()) }
@@ -34,6 +34,7 @@ actual val platformModule = module {
     }
     single<GestorPermisos> { get<GestorPermisosAndroid>() }
     single<Notificador> { NotificadorAndroid(androidContext()) }
+    single<MonitorRed> { MonitorRedAndroid(androidContext()) }
     single(named(ES_DEPURACION)) {
         (androidContext().applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }

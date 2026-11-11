@@ -25,6 +25,7 @@ import pe.edu.upeu.pharmamobile.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.CerrarSesionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ContarCambiosSinEnviarUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.IniciarSesionUseCase
@@ -81,6 +82,7 @@ val domainModule = module {
     factoryOf(::ObservarEstadoEnvioUseCase)
     factoryOf(::ReintentarEnviosFallidosUseCase)
     factoryOf(::DescartarEnvioUseCase)
+    factoryOf(::ContarCambiosSinEnviarUseCase)
 }
 
 val presentationModule = module {
@@ -88,7 +90,7 @@ val presentationModule = module {
     viewModelOf(::DetalleProductoViewModel)
     viewModelOf(::DiagnosticoSesionViewModel)
     viewModelOf(::AvisosStockViewModel)
-    viewModel { SesionViewModel(get(), get(), get(), get(), get(named(ES_DEPURACION))) }
+    viewModel { SesionViewModel(get(), get(), get(), get(), get(), get(named(ES_DEPURACION))) }
 }
 
 /** Categoría «Analgésicos» (id 1) creada en PharmaSoft; el dominio aún no maneja categorías. */

@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobile.domain.model.Producto
+import pe.edu.upeu.pharmamobile.domain.platform.MonitorRed
 import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
@@ -35,7 +38,9 @@ class ProductoViewModel(
     // Sesión 13
     private val observarEstadoEnvio: ObservarEstadoEnvioUseCase,
     private val reintentarEnvios: ReintentarEnviosFallidosUseCase,
-    private val descartarEnvio: DescartarEnvioUseCase
+    private val descartarEnvio: DescartarEnvioUseCase,
+    // Sesión 14
+    private val monitorRed: MonitorRed
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductoUiState())
@@ -65,6 +70,14 @@ class ProductoViewModel(
                     )
                 }
             }
+        }
+        // Sesión 14 (H7): al volver la red se sincroniza sola. drop(1): el primer valor
+        // es el estado actual y la sincronización inicial ya la hace el init.
+        viewModelScope.launch {
+            monitorRed.hayRed
+                .drop(1)
+                .filter { it }
+                .collect { sincronizar() }
         }
         sincronizar()
     }

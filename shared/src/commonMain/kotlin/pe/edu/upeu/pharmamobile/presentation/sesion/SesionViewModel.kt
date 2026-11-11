@@ -13,6 +13,7 @@ import pe.edu.upeu.pharmamobile.domain.model.ErrorSesionException
 import pe.edu.upeu.pharmamobile.domain.model.EstadoSesion
 import pe.edu.upeu.pharmamobile.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobile.domain.usecase.CerrarSesionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ContarCambiosSinEnviarUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.IniciarSesionUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RestaurarSesionUseCase
 
@@ -21,6 +22,7 @@ class SesionViewModel(
     private val iniciarSesion: IniciarSesionUseCase,
     private val cerrarSesion: CerrarSesionUseCase,
     private val restaurarSesion: RestaurarSesionUseCase,
+    private val contarCambiosSinEnviar: ContarCambiosSinEnviarUseCase,
     val esDepuracion: Boolean
 ) : ViewModel() {
 
@@ -66,10 +68,30 @@ class SesionViewModel(
         }
     }
 
+    /** Si hay cambios que PharmaSoft no conoce, se pregunta antes de borrarlos. */
     fun salir() {
+        viewModelScope.launch {
+            val sinEnviar = contarCambiosSinEnviar()
+            if (sinEnviar > 0) {
+                _uiState.update { it.copy(confirmarSalida = sinEnviar) }
+            } else {
+                cerrarSesion()
+            }
+        }
+    }
+
+    fun confirmarSalida() {
+        _uiState.update { it.copy(confirmarSalida = 0) }
         viewModelScope.launch { cerrarSesion() }
     }
+
+    fun cancelarSalida() = _uiState.update { it.copy(confirmarSalida = 0) }
 }
+
+/** Texto del diálogo de salida. Función pura: se prueba sin emulador. */
+fun textoSalidaConPendientes(cambios: Int): String =
+    if (cambios == 1) "Tienes 1 cambio que todavía no llegó a PharmaSoft. Si sales, se borrará de este equipo."
+    else "Tienes $cambios cambios que todavía no llegaron a PharmaSoft. Si sales, se borrarán de este equipo."
 
 fun mensajeSesion(error: ErrorSesion?): String = when (error) {
     ErrorSesion.CredencialesInvalidas -> "Usuario o contraseña incorrectos."

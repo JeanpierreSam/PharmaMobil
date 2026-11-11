@@ -124,6 +124,16 @@ class ProductoLocal(base: PharmaDb) {
         consultas.reiniciarIntentos()
     }
 
+    // --- Cierre de sesión (sesión 14) ---------------------------------------
+
+    /** Catálogo, pendientes y fecha de sincronización: nada del usuario anterior. */
+    fun borrarTodo() {
+        consultas.transaction {
+            consultas.borrarTodo()
+            sincronizacion.borrarUltima()
+        }
+    }
+
     private fun escribir(p: Producto, pendiente: Boolean) {
         consultas.insertar(
             id = p.id,

@@ -3,9 +3,12 @@ package pe.edu.upeu.pharmamobile
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -39,6 +42,7 @@ import pe.edu.upeu.pharmamobile.presentation.producto.ProductoViewModel
 import pe.edu.upeu.pharmamobile.presentation.producto.ProductosMainScreen
 import pe.edu.upeu.pharmamobile.presentation.sesion.LoginScreen
 import pe.edu.upeu.pharmamobile.presentation.sesion.SesionViewModel
+import pe.edu.upeu.pharmamobile.presentation.sesion.textoSalidaConPendientes
 import pe.edu.upeu.pharmamobile.presentation.theme.PharmaMobilTheme
 
 // Koin se inicia con startKoin(...) en MainApplication (Android) / initKoinIos()
@@ -76,6 +80,20 @@ fun App() {
                             modoOscuro = modoOscuro,
                             onToggleModoOscuro = { modoOscuro = !modoOscuro },
                             onCerrarSesion = sesionViewModel::salir
+                        )
+                    }
+                    // Sesión 14 (H8): salir con cambios sin enviar los borraría: se pregunta.
+                    if (loginUi.confirmarSalida > 0) {
+                        AlertDialog(
+                            onDismissRequest = sesionViewModel::cancelarSalida,
+                            title = { Text("Cambios sin enviar") },
+                            text = { Text(textoSalidaConPendientes(loginUi.confirmarSalida)) },
+                            confirmButton = {
+                                TextButton(onClick = sesionViewModel::confirmarSalida) { Text("Salir y descartar") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = sesionViewModel::cancelarSalida) { Text("Quedarme") }
+                            }
                         )
                     }
                 }
