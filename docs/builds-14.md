@@ -29,9 +29,9 @@ las pruebas de esta sesión y se ajusta la configuración de compilación.
 |---|---|
 | applicationId | `pe.edu.upeu.pharmamobile` (no `pe.upeu.pharmamobil`: lo exige el registro de Firebase) |
 | versionName · versionCode | 1.0.0 · 1 |
-| Paquete de aplicación | `Equipo<N>_ProyectoFinal_Android.aab` — *pendiente: se genera al crear el almacén de claves* |
-| Instalable de revisión | `Equipo<N>_ProyectoFinal_Android.apk` — *pendiente* |
-| Titular del certificado | `CN=PharmaMobil Equipo <N>, OU=EP Ingenieria de Sistemas, O=Universidad Peruana Union, L=Lima, ST=Lima, C=PE` |
+| Paquete de aplicación | `Equipo12_ProyectoFinal_Android.aab` — *pendiente: se genera al crear el almacén de claves* |
+| Instalable de revisión | `Equipo12_ProyectoFinal_Android.apk` — *pendiente* |
+| Titular del certificado | `CN=PharmaMobil Equipo 12, OU=EP Ingenieria de Sistemas, O=Universidad Peruana Union, L=Lima, ST=Lima, C=PE` |
 | Huella SHA-256 | *pendiente: copiar de `apksigner verify --print-certs`* |
 | Validez | *pendiente: `keytool -list -v`* |
 | Esquemas de firma (APK) | *pendiente* |
@@ -50,3 +50,5 @@ se generan cuando existe el almacén.
 | Reglas agregadas | Solo `-keepattributes SourceFile,LineNumberTable` y `-renamesourcefileattribute SourceFile` (trazas legibles en Crashlytics). No se agregaron `-dontwarn` ni reglas de serialización: nada las pidió |
 | Recorrido completo con el APK de entrega | *Pendiente en dispositivo real*: confirmar que la lista carga (serialización) y que todas las pantallas abren (inyección). Si falla, agregar el bloque de serialización de la guía |
 | Decisión | Minificación **activada** |
+
+> Equipo 12: es el número de lista; no se asignó número de equipo.

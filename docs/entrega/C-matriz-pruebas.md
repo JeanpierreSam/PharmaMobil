@@ -1,6 +1,6 @@
 # Matriz de pruebas en dispositivos reales
 
-Build: `Equipo<N>_ProyectoFinal_Android.apk` · 1.0.0 (1) · firmado (SHA-256 `<primeros 16 caracteres>…`).
+Build: `Equipo12_ProyectoFinal_Android.apk` · 1.0.0 (1) · firmado (SHA-256 `<primeros 16 caracteres>…`).
 Servicio: PharmaSoft en el PC del equipo, zona con cobertura de Windows (`http://192.168.137.1:8080/api/v1/`).
 
 > Estado: **pendiente de ejecutar**. Ninguna fila tiene resultado todavía; se llena con lo que se observe en cada dispositivo, con su fecha real.
