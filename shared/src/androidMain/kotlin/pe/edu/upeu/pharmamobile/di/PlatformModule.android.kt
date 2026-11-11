@@ -22,8 +22,6 @@ import pe.edu.upeu.pharmamobile.platform.NotificadorAndroid
 
 actual val platformModule = module {
     single<HttpClientEngine> { OkHttp.create() }
-    // El emulador ve al PC anfitrion como 10.0.2.2, no como localhost.
-    single(named(URL_BASE)) { "http://10.0.2.2:8080/api/v1/" }
     single<Compartidor> { CompartidorAndroid(androidContext()) }
     single<AlmacenSeguro> { AlmacenSeguroAndroid(androidContext()) }
     single<CreadorDeDriver> { CreadorDeDriverAndroid(androidContext()) }
