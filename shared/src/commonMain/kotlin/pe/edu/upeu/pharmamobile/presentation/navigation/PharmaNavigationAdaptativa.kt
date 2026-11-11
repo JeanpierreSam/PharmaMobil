@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.Menu
@@ -41,9 +42,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun PharmaNavigationAdaptativa(
     destinoActual: Destino,
+    destinos: List<Destino>,
     onSeleccionarDestino: (Destino) -> Unit,
     modoOscuro: Boolean,
     onToggleModoOscuro: () -> Unit,
+    onCerrarSesion: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
@@ -59,6 +62,7 @@ fun PharmaNavigationAdaptativa(
                         PermanentDrawerSheet {
                             PharmaDrawerContenidoInterno(
                                 destinoActual = destinoActual,
+                                destinos = destinos,
                                 onSeleccionarDestino = onSeleccionarDestino
                             )
                         }
@@ -70,6 +74,7 @@ fun PharmaNavigationAdaptativa(
                         onAbrirMenu = {},
                         modoOscuro = modoOscuro,
                         onToggleModoOscuro = onToggleModoOscuro,
+                        onCerrarSesion = onCerrarSesion,
                         snackbarHostState = snackbarHostState,
                         content = content
                     )
@@ -80,7 +85,7 @@ fun PharmaNavigationAdaptativa(
             anchoDp >= 600.dp -> {
                 Row(modifier = Modifier.fillMaxSize()) {
                     NavigationRail {
-                        Destino.valores.forEach { destino ->
+                        destinos.forEach { destino ->
                             NavigationRailItem(
                                 selected = destinoActual == destino,
                                 onClick = { onSeleccionarDestino(destino) },
@@ -101,6 +106,7 @@ fun PharmaNavigationAdaptativa(
                         onAbrirMenu = {},
                         modoOscuro = modoOscuro,
                         onToggleModoOscuro = onToggleModoOscuro,
+                        onCerrarSesion = onCerrarSesion,
                         snackbarHostState = snackbarHostState,
                         modifier = Modifier.weight(1f),
                         content = content
@@ -118,6 +124,7 @@ fun PharmaNavigationAdaptativa(
                     drawerContent = {
                         PharmaDrawerContent(
                             destinoActual = destinoActual,
+                            destinos = destinos,
                             onSeleccionarDestino = { destino ->
                                 onSeleccionarDestino(destino)
                                 scope.launch { drawerState.close() }
@@ -135,6 +142,7 @@ fun PharmaNavigationAdaptativa(
                         },
                         modoOscuro = modoOscuro,
                         onToggleModoOscuro = onToggleModoOscuro,
+                        onCerrarSesion = onCerrarSesion,
                         snackbarHostState = snackbarHostState,
                         content = content
                     )
@@ -152,6 +160,7 @@ private fun ScaffoldTopBarAdaptativo(
     onAbrirMenu: () -> Unit,
     modoOscuro: Boolean,
     onToggleModoOscuro: () -> Unit,
+    onCerrarSesion: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
@@ -177,6 +186,12 @@ private fun ScaffoldTopBarAdaptativo(
                         Icon(
                             imageVector = if (modoOscuro) Icons.Default.Brightness7 else Icons.Default.Brightness4,
                             contentDescription = if (modoOscuro) "Cambiar a modo claro" else "Cambiar a modo oscuro"
+                        )
+                    }
+                    IconButton(onClick = onCerrarSesion) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Cerrar sesión"
                         )
                     }
                 }

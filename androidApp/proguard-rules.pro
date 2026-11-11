@@ -1,21 +1,9 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ===== Sesión 14: reglas mínimas para la versión de entrega =====
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# R8 compiló esta versión sin reglas y sin missing_rules.txt (Ktor 3.6 y Tink no pidieron
+# -dontwarn con AGP 9.0.1). Por eso no se agregan los -dontwarn previstos: solo lo necesario.
+# kotlinx.serialization y Ktor traen sus propias reglas de consumidor.
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Crashlytics: trazas legibles (el plugin sube el mapping en cada build release) ---
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

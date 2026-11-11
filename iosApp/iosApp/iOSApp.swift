@@ -4,7 +4,8 @@ import Shared
 @main
 struct iOSApp: App {
     init() {
-        KoinInitKt.initKoinIos()
+        // Swift reserva init* para constructores: Kotlin/Native expone initKoinIos() como doInitKoinIos().
+        KoinInitKt.doInitKoinIos()
     }
 
     var body: some Scene {

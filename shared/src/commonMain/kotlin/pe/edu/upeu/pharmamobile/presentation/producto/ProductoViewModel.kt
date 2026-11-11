@@ -5,64 +5,285 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApi
+import pe.edu.upeu.pharmamobile.domain.error.ErrorApiException
+import pe.edu.upeu.pharmamobile.domain.model.Producto
+import pe.edu.upeu.pharmamobile.domain.platform.MonitorRed
+import pe.edu.upeu.pharmamobile.domain.usecase.ActualizarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.DescartarEnvioUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.ErrorRegistroProducto
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarEstadoEnvioUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarProductosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObservarUltimaSincronizacionUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobile.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.ReintentarEnviosFallidosUseCase
+import pe.edu.upeu.pharmamobile.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
+import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
 
 class ProductoViewModel(
+    private val observarProductos: ObservarProductosUseCase,
+    private val sincronizarProductos: SincronizarProductosUseCase,
+    private val obtenerProducto: ObtenerProductoUseCase,
     private val registrarProducto: RegistrarProductoUseCase,
-    private val repository: ProductoRepository
+    private val actualizarProducto: ActualizarProductoUseCase,
+    private val eliminarProducto: EliminarProductoUseCase,
+    private val observarUltimaSincronizacion: ObservarUltimaSincronizacionUseCase,
+    // Sesión 13
+    private val observarEstadoEnvio: ObservarEstadoEnvioUseCase,
+    private val reintentarEnvios: ReintentarEnviosFallidosUseCase,
+    private val descartarEnvio: DescartarEnvioUseCase,
+    // Sesión 14
+    private val monitorRed: MonitorRed
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductoUiState())
     val uiState: StateFlow<ProductoUiState> = _uiState.asStateFlow()
 
-    init { cargarProductos() }
-
-    fun cargarProductos() {
+    init {
+        // Se suscribe UNA vez a la base: cada escritura en la tabla llega sola aquí.
         viewModelScope.launch {
-            _uiState.update { it.copy(fase = ProductoUiState.Fase.Cargando) }
-            runCatching { repository.listar() }
-                .onSuccess { lista ->
+            observarProductos().collect { productos ->
+                _uiState.update { it.copy(fase = faseDe(productos)) }
+            }
+        }
+        viewModelScope.launch {
+            observarUltimaSincronizacion().collect { instante ->
+                _uiState.update { it.copy(ultimaSincronizacion = instante) }
+            }
+        }
+        // Sesión 13: pendientes y fallidas salen de consultas observables de la base,
+        // nunca de la red. Si ya no queda nada fallido, el diálogo se cierra solo.
+        viewModelScope.launch {
+            observarEstadoEnvio().collect { envio ->
+                _uiState.update {
+                    it.copy(
+                        pendientes = envio.pendientes,
+                        fallidas = envio.fallidas,
+                        dialogoFallidas = it.dialogoFallidas && envio.fallidas.isNotEmpty()
+                    )
+                }
+            }
+        }
+        // Sesión 14 (H7): al volver la red se sincroniza sola. drop(1): el primer valor
+        // es el estado actual y la sincronización inicial ya la hace el init.
+        viewModelScope.launch {
+            monitorRed.hayRed
+                .drop(1)
+                .filter { it }
+                .collect { sincronizar() }
+        }
+        sincronizar()
+    }
+
+    /** Desde el init y desde el botón de la barra. No devuelve datos: los trae el Flow. */
+    fun sincronizar() {
+        if (_uiState.value.sincronizando) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(sincronizando = true) }
+            val resultado = sincronizarProductos()
+            _uiState.update {
+                it.copy(
+                    sincronizando = false,
+                    avisoRed = resultado.exceptionOrNull()?.let(::avisoDeSincronizacion)
+                )
+            }
+        }
+    }
+
+    private fun faseDe(productos: List<Producto>): Fase =
+        if (productos.isEmpty()) Fase.SinProductos else Fase.ConProductos(productos)
+
+    private fun avisoDeSincronizacion(fallo: Throwable): String =
+        when ((fallo as? ErrorApiException)?.error) {
+            ErrorApi.SinConexion, ErrorApi.TiempoAgotado -> "Sin conexión: mostrando datos guardados"
+            else -> "No se pudo sincronizar: ${mensajeDeFallo(fallo)}"
+        }
+
+    // --- Formulario -------------------------------------------------------
+
+    fun nuevoProducto() {
+        _uiState.update { it.copy(formulario = FormularioProducto(abierto = true), mensajeExito = null) }
+    }
+
+    /** Lee el producto de la base local y precarga el formulario (funciona sin red). */
+    fun editar(id: Long) {
+        viewModelScope.launch {
+            obtenerProducto(id)
+                .onSuccess { p ->
                     _uiState.update {
                         it.copy(
-                            productos = lista,
-                            fase = if (lista.isEmpty()) {
-                                ProductoUiState.Fase.SinProductos
-                            } else {
-                                ProductoUiState.Fase.ConProductos
-                            }
+                            formulario = FormularioProducto(
+                                abierto = true,
+                                id = p.id,
+                                nombre = p.nombre,
+                                precio = p.precio.toString(),
+                                stock = p.stock.toString(),
+                                activo = p.activo
+                            ),
+                            mensajeExito = null
                         )
                     }
                 }
-                .onFailure { e ->
-                    _uiState.update { it.copy(fase = ProductoUiState.Fase.Error(e.message ?: "Error desconocido")) }
-                }
+                .onFailure { fallo -> manejarFallo(fallo) }
         }
     }
 
-    fun registrar(nombre: String, precio: String, stock: String, activo: Boolean) {
+    fun cerrarFormulario() {
+        _uiState.update { it.copy(formulario = FormularioProducto(), operacion = Operacion.Inactiva) }
+    }
+
+    fun onNombreChange(valor: String) = actualizarFormulario { it.copy(nombre = valor, nombreError = null) }
+    fun onPrecioChange(valor: String) = actualizarFormulario { it.copy(precio = valor, precioError = null) }
+    fun onStockChange(valor: String) = actualizarFormulario { it.copy(stock = valor, stockError = null) }
+    fun onActivoChange(valor: Boolean) = actualizarFormulario { it.copy(activo = valor) }
+
+    // Al corregir un campo se descarta el error de la operación anterior (409, 404...).
+    private fun actualizarFormulario(cambio: (FormularioProducto) -> FormularioProducto) {
+        _uiState.update {
+            it.copy(
+                formulario = cambio(it.formulario),
+                operacion = if (it.operacion is Operacion.Fallida) Operacion.Inactiva else it.operacion
+            )
+        }
+    }
+
+    // --- Operaciones ------------------------------------------------------
+
+    /** Crea o actualiza según el formulario tenga id. */
+    fun guardar() {
+        val estado = _uiState.value
+        if (estado.operacion is Operacion.EnCurso) return
+        val f = estado.formulario
+        val tipo = if (f.esEdicion) Operacion.Tipo.Actualizar else Operacion.Tipo.Crear
+
         viewModelScope.launch {
-            _uiState.update { it.copy(guardando = true) }
-            registrarProducto.invoke(nombre, precio, stock, activo)
-                .onSuccess {
-                    _uiState.update { it.copy(guardando = false, mensaje = MensajesProducto.REGISTRO_EXITOSO) }
-                    cargarProductos()
+            _uiState.update { it.copy(operacion = Operacion.EnCurso(tipo), mensajeExito = null) }
+            val resultado = if (f.id != null) {
+                actualizarProducto(f.id, f.nombre, f.precio, f.stock, f.activo)
+            } else {
+                registrarProducto(f.nombre, f.precio, f.stock, f.activo)
+            }
+            resultado
+                .onSuccess { producto ->
+                    _uiState.update {
+                        it.copy(
+                            formulario = FormularioProducto(),
+                            operacion = Operacion.Inactiva,
+                            mensajeExito = when {
+                                // id negativo: quedó en la base local, PharmaSoft aún no lo tiene
+                                producto.id < 0 -> "Sin conexión: \"${producto.nombre}\" quedó pendiente de envío"
+                                tipo == Operacion.Tipo.Crear -> "Producto \"${producto.nombre}\" registrado"
+                                else -> "Producto \"${producto.nombre}\" actualizado"
+                            }
+                        )
+                    }
+                    // Ya no se recarga la lista: se escribió en la tabla y el Flow emitió.
                 }
-                .onFailure { e ->
-                    _uiState.update { it.copy(guardando = false, mensaje = mapearError(e)) }
-                }
+                .onFailure { fallo -> manejarFallo(fallo) }
         }
     }
 
-    private fun mapearError(e: Throwable): String = when (e.message) {
-        ErrorRegistroProducto.NombreObligatorio::class.simpleName -> MensajesProducto.NOMBRE_OBLIGATORIO
-        ErrorRegistroProducto.PrecioNoNumerico::class.simpleName -> MensajesProducto.PRECIO_NO_NUMERICO
-        ErrorRegistroProducto.PrecioNoPositivo::class.simpleName -> MensajesProducto.PRECIO_NO_POSITIVO
-        ErrorRegistroProducto.StockNoEntero::class.simpleName -> MensajesProducto.STOCK_NO_ENTERO
-        ErrorRegistroProducto.StockNegativo::class.simpleName -> MensajesProducto.STOCK_NEGATIVO
-        else -> "Error al registrar el producto"
+    fun eliminar(id: Long) {
+        if (_uiState.value.operacion is Operacion.EnCurso) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(operacion = Operacion.EnCurso(Operacion.Tipo.Eliminar), mensajeExito = null) }
+            eliminarProducto(id)
+                .onSuccess {
+                    _uiState.update { it.copy(operacion = Operacion.Inactiva, mensajeExito = "Producto dado de baja") }
+                }
+                .onFailure { fallo -> manejarFallo(fallo) }
+        }
     }
+
+    /** La pantalla lo llama después de mostrar el Snackbar. */
+    fun mensajeMostrado() {
+        _uiState.update {
+            it.copy(
+                mensajeExito = null,
+                operacion = if (it.operacion is Operacion.Fallida) Operacion.Inactiva else it.operacion
+            )
+        }
+    }
+
+    // --- Envíos fallidos (sesión 13) ----------------------------------------
+
+    fun revisarFallidas() = _uiState.update { it.copy(dialogoFallidas = true) }
+
+    fun cerrarFallidas() = _uiState.update { it.copy(dialogoFallidas = false) }
+
+    /** Devuelve las filas fallidas a la cola (intentos = 0) y sincroniza de inmediato. */
+    fun reintentarFallidas() {
+        viewModelScope.launch {
+            reintentarEnvios()
+                .onSuccess {
+                    _uiState.update { it.copy(dialogoFallidas = false) }
+                    sincronizar()
+                }
+                .onFailure { fallo -> manejarFallo(fallo) }
+        }
+    }
+
+    /** Quita de la base un producto que nunca llegó a PharmaSoft. */
+    fun descartarFallida(id: Long) {
+        viewModelScope.launch {
+            descartarEnvio(id)
+                .onSuccess { _uiState.update { it.copy(mensajeExito = "Cambio descartado") } }
+                .onFailure { fallo -> manejarFallo(fallo) }
+        }
+    }
+
+    // --- Errores ----------------------------------------------------------
+
+    private fun manejarFallo(fallo: Throwable) {
+        val errorApi = (fallo as? ErrorApiException)?.error
+        val errorLocal = errorLocalDe(fallo)
+        when {
+            // 400 de PharmaSoft: cada mensaje va debajo de su campo.
+            errorApi is ErrorApi.Validacion -> _uiState.update {
+                it.copy(
+                    operacion = Operacion.Inactiva,
+                    formulario = it.formulario.copy(
+                        nombreError = errorApi.porCampo["nombre"],
+                        precioError = errorApi.porCampo["precio"],
+                        stockError = errorApi.porCampo["stock"]
+                    )
+                )
+            }
+            // Validación local previa al envío: mismo lugar, sin llamar al servidor.
+            errorLocal != null -> _uiState.update {
+                it.copy(operacion = Operacion.Inactiva, formulario = conErrorLocal(it.formulario, errorLocal))
+            }
+            else -> _uiState.update { it.copy(operacion = Operacion.Fallida(mensajeDeFallo(fallo))) }
+        }
+    }
+
+    private fun mensajeDeFallo(fallo: Throwable): String =
+        (fallo as? ErrorApiException)?.error?.let(::mensajeDe) ?: fallo.message ?: "Error desconocido"
+
+    private fun errorLocalDe(fallo: Throwable): ErrorRegistroProducto? {
+        if (fallo !is IllegalArgumentException) return null
+        return listOf(
+            ErrorRegistroProducto.NombreObligatorio,
+            ErrorRegistroProducto.PrecioNoNumerico,
+            ErrorRegistroProducto.PrecioNoPositivo,
+            ErrorRegistroProducto.StockNoEntero,
+            ErrorRegistroProducto.StockNegativo
+        ).firstOrNull { it::class.simpleName == fallo.message }
+    }
+
+    private fun conErrorLocal(f: FormularioProducto, error: ErrorRegistroProducto): FormularioProducto =
+        when (error) {
+            ErrorRegistroProducto.NombreObligatorio -> f.copy(nombreError = MensajesProducto.NOMBRE_OBLIGATORIO)
+            ErrorRegistroProducto.PrecioNoNumerico -> f.copy(precioError = MensajesProducto.PRECIO_NO_NUMERICO)
+            ErrorRegistroProducto.PrecioNoPositivo -> f.copy(precioError = MensajesProducto.PRECIO_NO_POSITIVO)
+            ErrorRegistroProducto.StockNoEntero -> f.copy(stockError = MensajesProducto.STOCK_NO_ENTERO)
+            ErrorRegistroProducto.StockNegativo -> f.copy(stockError = MensajesProducto.STOCK_NEGATIVO)
+        }
 }

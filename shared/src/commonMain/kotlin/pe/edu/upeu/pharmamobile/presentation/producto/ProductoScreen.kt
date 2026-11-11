@@ -10,64 +10,33 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.presentation.components.CampoFormulario
 import pe.edu.upeu.pharmamobile.presentation.components.PharmaHeader
 
 /**
- * Pantalla de registro de productos de PharmaMobil.
+ * Formulario de alta y edición de productos.
  *
- * Sesion 05: el formulario ya no valida ni construye el dominio por su
- * cuenta -- delega en [ProductoViewModel.registrar], que a su vez usa
- * `RegistrarProductoUseCase`. Aqui solo queda estado transitorio de UI
- * (el texto que el usuario va escribiendo) y el resaltado en tiempo real.
+ * Sesión 08: ya no guarda estado propio. Todo vive en [FormularioProducto]
+ * dentro del UiState, de modo que los errores que devuelve PharmaSoft (400,
+ * validationErrors) se pintan debajo del campo correspondiente, igual que
+ * los de la validación local.
  */
 @Composable
 fun ProductoScreen(
+    formulario: FormularioProducto,
+    guardando: Boolean,
+    onNombreChange: (String) -> Unit,
+    onPrecioChange: (String) -> Unit,
+    onStockChange: (String) -> Unit,
+    onActivoChange: (Boolean) -> Unit,
+    onGuardar: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ProductoViewModel = koinViewModel(),
-    onProductoRegistrado: (() -> Unit)? = null
+    errorOperacion: String? = null
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    // Estado observable de cada campo. Se guardan como String porque es
-    // lo que entrega el usuario; la conversion a numero ocurre al validar.
-    var nombre by remember { mutableStateOf("") }
-    var precio by remember { mutableStateOf("") }
-    var stock by remember { mutableStateOf("") }
-    var activo by remember { mutableStateOf(true) }
-
-    // Evita mostrar errores antes de que el usuario pulse REGISTRAR.
-    var intentoRegistrar by remember { mutableStateOf(false) }
-
-    // El resaltado en rojo solo se activa tras el primer intento.
-    val errorNombre = intentoRegistrar && nombreEsInvalido(nombre)
-    val errorPrecio = intentoRegistrar && precioEsInvalido(precio)
-    val errorStock = intentoRegistrar && stockEsInvalido(stock)
-
-    LaunchedEffect(uiState.mensaje) {
-        if (uiState.mensaje == MensajesProducto.REGISTRO_EXITOSO) {
-            // Limpieza del formulario tras un registro exitoso.
-            nombre = ""
-            precio = ""
-            stock = ""
-            activo = true
-            intentoRegistrar = false
-            onProductoRegistrado?.invoke()
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -76,40 +45,32 @@ fun ProductoScreen(
     ) {
         PharmaHeader(
             titulo = "PHARMAMOBIL",
-            subtitulo = "Registro de Producto"
+            subtitulo = if (formulario.esEdicion) "Editar Producto" else "Registro de Producto"
         )
 
         CampoFormulario(
-            valor = nombre,
-            onValorChange = { nombre = it },
+            valor = formulario.nombre,
+            onValorChange = onNombreChange,
             etiqueta = "Nombre del producto",
-            esError = errorNombre,
-            mensajeError = MensajesProducto.NOMBRE_OBLIGATORIO
+            esError = formulario.nombreError != null,
+            mensajeError = formulario.nombreError
         )
 
         CampoFormulario(
-            valor = precio,
-            onValorChange = { precio = it },
+            valor = formulario.precio,
+            onValorChange = onPrecioChange,
             etiqueta = "Precio",
-            esError = errorPrecio,
-            mensajeError = if (precio.toDoubleOrNull() == null) {
-                MensajesProducto.PRECIO_NO_NUMERICO
-            } else {
-                MensajesProducto.PRECIO_NO_POSITIVO
-            },
+            esError = formulario.precioError != null,
+            mensajeError = formulario.precioError,
             tipoTeclado = KeyboardType.Decimal
         )
 
         CampoFormulario(
-            valor = stock,
-            onValorChange = { stock = it },
+            valor = formulario.stock,
+            onValorChange = onStockChange,
             etiqueta = "Stock",
-            esError = errorStock,
-            mensajeError = if (stock.toIntOrNull() == null) {
-                MensajesProducto.STOCK_NO_ENTERO
-            } else {
-                MensajesProducto.STOCK_NEGATIVO
-            },
+            esError = formulario.stockError != null,
+            mensajeError = formulario.stockError,
             tipoTeclado = KeyboardType.Number
         )
 
@@ -123,35 +84,32 @@ fun ProductoScreen(
                 style = MaterialTheme.typography.bodyLarge
             )
             Switch(
-                checked = activo,
-                onCheckedChange = { activo = it }
+                checked = formulario.activo,
+                onCheckedChange = onActivoChange
+            )
+        }
+
+        // Errores que no son de un campo (409 nombre duplicado, 404, sin conexión):
+        // dentro del diálogo, porque un Snackbar quedaría tapado por él.
+        if (errorOperacion != null) {
+            Text(
+                text = errorOperacion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
             )
         }
 
         Button(
-            onClick = {
-                intentoRegistrar = true
-                viewModel.registrar(nombre, precio, stock, activo)
-            },
-            enabled = !uiState.guardando,
+            onClick = onGuardar,
+            enabled = !guardando,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (uiState.guardando) "GUARDANDO..." else "REGISTRAR")
-        }
-
-        // Text reactivo: se recompone cada vez que cambia el mensaje del ViewModel.
-        val mensaje = uiState.mensaje
-        if (!mensaje.isNullOrBlank()) {
             Text(
-                text = mensaje,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (mensaje == MensajesProducto.REGISTRO_EXITOSO) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                when {
+                    guardando -> "GUARDANDO..."
+                    formulario.esEdicion -> "GUARDAR CAMBIOS"
+                    else -> "REGISTRAR"
+                }
             )
         }
     }

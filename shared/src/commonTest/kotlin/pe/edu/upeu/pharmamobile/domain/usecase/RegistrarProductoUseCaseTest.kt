@@ -2,7 +2,7 @@ package pe.edu.upeu.pharmamobile.domain.usecase
 
 import kotlinx.coroutines.test.runTest
 import pe.edu.upeu.pharmamobile.domain.model.Producto
-import pe.edu.upeu.pharmamobile.domain.repository.ProductoRepository
+import pe.edu.upeu.pharmamobile.data.repository.FakeProductoRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -16,24 +16,6 @@ import kotlin.test.assertTrue
  */
 class RegistrarProductoUseCaseTest {
 
-    private class RepositorioFalso : ProductoRepository {
-        private val productos = mutableListOf<Producto>()
-
-        override suspend fun registrar(nombre: String, precio: Double, stock: Int, activo: Boolean): Producto {
-            val nuevo = Producto(
-                id = (productos.maxOfOrNull { it.id } ?: 0L) + 1L,
-                nombre = nombre,
-                precio = precio,
-                stock = stock,
-                activo = activo
-            )
-            productos += nuevo
-            return nuevo
-        }
-
-        override suspend fun listar(): List<Producto> = productos
-    }
-
     /**
      * Ejecuta el caso de uso y devuelve el nombre del error obtenido.
      *
@@ -44,7 +26,7 @@ class RegistrarProductoUseCaseTest {
     private fun nombreDelError(nombre: String, precio: String, stock: String): String? {
         var mensaje: String? = null
         runTest {
-            val useCase = RegistrarProductoUseCase(RepositorioFalso())
+            val useCase = RegistrarProductoUseCase(FakeProductoRepository())
             val resultado = useCase.invoke(nombre = nombre, precio = precio, stock = stock, activo = true)
             assertTrue(resultado.isFailure, "Se esperaba un resultado invalido para [$nombre | $precio | $stock]")
             mensaje = resultado.exceptionOrNull()?.message
@@ -58,7 +40,7 @@ class RegistrarProductoUseCaseTest {
 
     @Test
     fun caso01_datosCorrectosRegistranElProducto() = runTest {
-        val useCase = RegistrarProductoUseCase(RepositorioFalso())
+        val useCase = RegistrarProductoUseCase(FakeProductoRepository())
         val resultado = useCase.invoke(nombre = "Paracetamol 500 mg", precio = "8.50", stock = "100", activo = true)
 
         val producto = resultado.getOrThrow()
@@ -110,7 +92,7 @@ class RegistrarProductoUseCaseTest {
 
     @Test
     fun caso07_stockEnCeroEsValido() = runTest {
-        val useCase = RegistrarProductoUseCase(RepositorioFalso())
+        val useCase = RegistrarProductoUseCase(FakeProductoRepository())
         val resultado = useCase.invoke(nombre = "Loratadina", precio = "10", stock = "0", activo = true)
 
         val producto = resultado.getOrThrow()
@@ -152,7 +134,7 @@ class RegistrarProductoUseCaseTest {
 
     @Test
     fun elNombreSeGuardaSinEspaciosSobrantes() = runTest {
-        val useCase = RegistrarProductoUseCase(RepositorioFalso())
+        val useCase = RegistrarProductoUseCase(FakeProductoRepository())
         val resultado = useCase.invoke(nombre = "   Loratadina   ", precio = "10", stock = "5", activo = true)
 
         assertEquals(expected = "Loratadina", actual = resultado.getOrThrow().nombre)

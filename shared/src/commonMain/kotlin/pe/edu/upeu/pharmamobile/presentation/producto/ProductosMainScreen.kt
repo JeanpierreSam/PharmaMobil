@@ -17,6 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,27 +29,38 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobile.domain.model.Producto
 import pe.edu.upeu.pharmamobile.domain.query.activos
 import pe.edu.upeu.pharmamobile.domain.query.bajoStock
 import pe.edu.upeu.pharmamobile.domain.query.inactivos
-import pe.edu.upeu.pharmamobile.presentation.theme.aSoles
+import pe.edu.upeu.pharmamobile.platform.ahoraEnMilis
+import pe.edu.upeu.pharmamobile.presentation.avisos.TarjetaAvisosStock
+import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoScreen
+import pe.edu.upeu.pharmamobile.presentation.detalle.DetalleProductoViewModel
+import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Fase
+import pe.edu.upeu.pharmamobile.presentation.producto.ProductoUiState.Operacion
 
 /**
  * Pestañas de clasificación de inventario de productos.
@@ -58,101 +72,145 @@ enum class TabProducto(val titulo: String) {
 }
 
 /**
- * Pantalla principal de Productos con Tabs y formulario de registro integrado.
+ * Pantalla principal de Productos: listado por pestañas y CRUD contra PharmaSoft.
  *
- * Sesion 05: ya no recibe `productos` ni `onProductoRegistrado` por parametro
- * (prop drilling) -- resuelve su propio [ProductoViewModel] con Koin y pinta
- * las 4 fases de [ProductoUiState.Fase].
+ * Sesión 08: el `when` sobre [Fase] es exhaustivo (sin else) y las operaciones
+ * se reflejan en [Operacion], así que guardar o eliminar no oculta la lista.
+ * Los resultados (éxito o fallo) se muestran en el Snackbar de la app.
+ *
+ * Sesión 11: la lista sale de la base local; arriba, la barra de sincronización.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductosMainScreen(
+    snackbarHostState: SnackbarHostState,
+    puedeEscribir: Boolean,
     modifier: Modifier = Modifier,
-    viewModel: ProductoViewModel = koinViewModel()
+    viewModel: ProductoViewModel = koinViewModel(),
+    detalleViewModel: DetalleProductoViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var tabSeleccionada by rememberSaveable { mutableIntStateOf(0) }
-    var mostrarFormularioRegistro by remember { mutableStateOf(false) }
+    var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
+
+    // Un solo canal de avisos: éxito de la operación o su fallo (409, sin conexión, etc.).
+    // Con el formulario abierto el fallo se muestra dentro del diálogo, no en el Snackbar.
+    val falloOperacion = (uiState.operacion as? Operacion.Fallida)?.mensaje
+    val aviso = uiState.mensajeExito ?: falloOperacion.takeIf { !uiState.formulario.abierto }
+    LaunchedEffect(aviso) {
+        if (aviso != null) {
+            snackbarHostState.showSnackbar(aviso)
+            viewModel.mensajeMostrado()
+        }
+    }
+
+    // «hace 1 minuto» no debe quedarse congelado: se recalcula cada minuto.
+    val ahora by produceState(ahoraEnMilis()) {
+        while (true) {
+            delay(60_000)
+            value = ahoraEnMilis()
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
-        when (val fase = uiState.fase) {
-            is ProductoUiState.Fase.Cargando -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            is ProductoUiState.Fase.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No se pudo cargar el inventario: ${fase.detalle}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            is ProductoUiState.Fase.SinProductos -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Todavía no hay productos registrados.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            is ProductoUiState.Fase.ConProductos -> {
-                val productosFiltrados = remember(uiState.productos, tabSeleccionada) {
-                    when (TabProducto.entries[tabSeleccionada]) {
-                        TabProducto.ACTIVOS -> uiState.productos.activos()
-                        TabProducto.INACTIVOS -> uiState.productos.inactivos()
-                        TabProducto.BAJO_STOCK -> uiState.productos.bajoStock()
-                    }
-                }
-
-                Column(modifier = Modifier.fillMaxSize()) {
-                    PrimaryTabRow(selectedTabIndex = tabSeleccionada) {
-                        TabProducto.entries.forEachIndexed { index, tab ->
-                            Tab(
-                                selected = tabSeleccionada == index,
-                                onClick = { tabSeleccionada = index },
-                                text = { Text(tab.titulo) }
-                            )
+        Column(modifier = Modifier.fillMaxSize()) {
+            BarraSincronizacion(
+                antiguedad = textoAntiguedad(uiState.ultimaSincronizacion, ahora),
+                aviso = uiState.avisoRed,
+                pendientes = uiState.pendientes,
+                fallidas = uiState.fallidas.size,
+                sincronizando = uiState.sincronizando,
+                onSincronizar = viewModel::sincronizar,
+                onRevisarFallidas = viewModel::revisarFallidas
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                when (val fase = uiState.fase) {
+                    Fase.Cargando -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
 
-                    if (productosFiltrados.isEmpty()) {
+                    Fase.SinProductos -> {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Primera apertura sin red: estado vacío informativo, no una pantalla de error.
                             Text(
-                                text = "No hay productos en esta categoría.",
+                                text = if (uiState.ultimaSincronizacion == null && uiState.avisoRed != null) {
+                                    "Aún no hay datos guardados en este dispositivo.\nConéctate a internet y pulsa Sincronizar."
+                                } else {
+                                    "Todavía no hay productos registrados."
+                                },
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
                             )
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(
-                                items = productosFiltrados,
-                                key = { "${it.id}_${it.nombre}" }
-                            ) { producto ->
-                                TarjetaProducto(producto = producto)
+                    }
+
+                    is Fase.ConProductos -> {
+                        val productosFiltrados = remember(fase.productos, tabSeleccionada) {
+                            when (TabProducto.entries[tabSeleccionada]) {
+                                TabProducto.ACTIVOS -> fase.productos.activos()
+                                TabProducto.INACTIVOS -> fase.productos.inactivos()
+                                TabProducto.BAJO_STOCK -> fase.productos.bajoStock()
+                            }
+                        }
+
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            PrimaryTabRow(selectedTabIndex = tabSeleccionada) {
+                                TabProducto.entries.forEachIndexed { index, tab ->
+                                    Tab(
+                                        selected = tabSeleccionada == index,
+                                        onClick = { tabSeleccionada = index },
+                                        text = { Text(tab.titulo) }
+                                    )
+                                }
+                            }
+
+                            // Sesión 13: el permiso se pide donde el usuario ve el stock bajo,
+                            // no al abrir la app.
+                            if (TabProducto.entries[tabSeleccionada] == TabProducto.BAJO_STOCK) {
+                                TarjetaAvisosStock(productosBajoStock = productosFiltrados.size)
+                            }
+
+                            if (productosFiltrados.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No hay productos en esta categoría.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(
+                                        items = productosFiltrados,
+                                        key = { it.id }
+                                    ) { producto ->
+                                        TarjetaProducto(
+                                            producto = producto.toUi(),
+                                            fallido = producto.id in uiState.idsFallidos,
+                                            accionesHabilitadas = uiState.operacion !is Operacion.EnCurso,
+                                            mostrarAcciones = puedeEscribir,
+                                            onVerDetalle = { detalleViewModel.abrir(producto.id) },
+                                            onEditar = { viewModel.editar(producto.id) },
+                                            onEliminar = { productoAEliminar = producto }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -160,21 +218,51 @@ fun ProductosMainScreen(
             }
         }
 
-        FloatingActionButton(
-            onClick = { mostrarFormularioRegistro = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Registrar nuevo producto"
-            )
+        if (puedeEscribir) {
+            FloatingActionButton(
+                onClick = viewModel::nuevoProducto,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Registrar nuevo producto"
+                )
+            }
         }
     }
 
-    if (mostrarFormularioRegistro) {
-        Dialog(onDismissRequest = { mostrarFormularioRegistro = false }) {
+    productoAEliminar?.let { producto ->
+        AlertDialog(
+            onDismissRequest = { productoAEliminar = null },
+            title = { Text("Dar de baja") },
+            text = { Text("¿Dar de baja \"${producto.nombre}\"? Pasará a la pestaña Inactivos.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.eliminar(producto.id)
+                    productoAEliminar = null
+                }) { Text("Dar de baja") }
+            },
+            dismissButton = {
+                TextButton(onClick = { productoAEliminar = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (uiState.dialogoFallidas) {
+        DialogoEnviosFallidos(
+            fallidas = uiState.fallidas,
+            onReintentar = viewModel::reintentarFallidas,
+            onDescartar = viewModel::descartarFallida,
+            onCerrar = viewModel::cerrarFallidas
+        )
+    }
+
+    DetalleProductoScreen(detalleViewModel)
+
+    if (uiState.formulario.abierto) {
+        Dialog(onDismissRequest = viewModel::cerrarFormulario) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,11 +282,11 @@ fun ProductosMainScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Nuevo Producto",
+                            text = if (uiState.formulario.esEdicion) "Editar Producto" else "Nuevo Producto",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        IconButton(onClick = { mostrarFormularioRegistro = false }) {
+                        IconButton(onClick = viewModel::cerrarFormulario) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Cerrar"
@@ -208,15 +296,16 @@ fun ProductosMainScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Formulario de registro original reutilizado; comparte el mismo
-                    // ProductoViewModel (misma ViewModelStoreOwner) que esta pantalla.
                     ProductoScreen(
+                        formulario = uiState.formulario,
+                        guardando = uiState.guardando,
+                        onNombreChange = viewModel::onNombreChange,
+                        onPrecioChange = viewModel::onPrecioChange,
+                        onStockChange = viewModel::onStockChange,
+                        onActivoChange = viewModel::onActivoChange,
+                        onGuardar = viewModel::guardar,
                         modifier = Modifier.fillMaxWidth(),
-                        viewModel = viewModel,
-                        onProductoRegistrado = {
-                            // La confirmación ya la muestra el Snackbar global de App.kt.
-                            mostrarFormularioRegistro = false
-                        }
+                        errorOperacion = falloOperacion
                     )
                 }
             }
@@ -225,10 +314,19 @@ fun ProductosMainScreen(
 }
 
 @Composable
-private fun TarjetaProducto(producto: Producto) {
+private fun TarjetaProducto(
+    producto: ProductoUi,
+    fallido: Boolean,
+    accionesHabilitadas: Boolean,
+    mostrarAcciones: Boolean,
+    onVerDetalle: () -> Unit,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
     val esBajoStock = producto.requiereReposicion
 
     Card(
+        onClick = onVerDetalle,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (esBajoStock) {
@@ -241,7 +339,7 @@ private fun TarjetaProducto(producto: Producto) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -251,37 +349,55 @@ private fun TarjetaProducto(producto: Producto) {
                 Text(
                     text = producto.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Text(
-                    text = if (producto.activo) "Activo" else "Inactivo",
+                    text = when {
+                        fallido -> "No se pudo enviar"
+                        producto.pendiente -> "Pendiente de envío"
+                        producto.activo -> "Activo"
+                        else -> "Inactivo"
+                    },
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (producto.activo) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    }
+                    color = when {
+                        fallido -> MaterialTheme.colorScheme.error
+                        producto.pendiente -> MaterialTheme.colorScheme.tertiary
+                        producto.activo -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.error
+                    },
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Precio: ${producto.precio.aSoles()}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Precio: ${producto.precio}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Stock: ${producto.stock}" + if (esBajoStock) " (Bajo Stock)" else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (esBajoStock) FontWeight.Bold else FontWeight.Normal,
+                        color = if (esBajoStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
-                Text(
-                    text = "Stock: ${producto.stock}" + if (esBajoStock) " (Bajo Stock)" else "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (esBajoStock) FontWeight.Bold else FontWeight.Normal,
-                    color = if (esBajoStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                )
+                if (mostrarAcciones) {
+                    IconButton(onClick = onEditar, enabled = accionesHabilitadas) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar ${producto.nombre}")
+                    }
+                    IconButton(onClick = onEliminar, enabled = accionesHabilitadas) {
+                        Icon(Icons.Default.Delete, contentDescription = "Dar de baja ${producto.nombre}")
+                    }
+                }
             }
         }
     }
