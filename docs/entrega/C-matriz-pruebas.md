@@ -10,8 +10,8 @@ Fecha de las pruebas: 11-11-2026, entre las 15:25 y las 15:50.
 
 | N.º | Dispositivo | Plataforma | Build instalado | Pasos ejecutados | Resultado | Responsable y fecha |
 |---|---|---|---|---|---|---|
-| 1 | Samsung Galaxy A56 5G (SM-A566E), Android *<versión pendiente>* | Android | `…_Android.apk` 1.0.0 | 1, 2 (sin red: sin evidencia), 3 (solo alta), 5, 6, 7 (solo el aviso de permiso), 8. **Sin evidencia:** 4 y el resto del 3 | Correcto en lo ejecutado; sin defectos observados | Jeanpierre, 11-11-2026 |
-| 2 | Samsung Galaxy S24 Ultra (SM-S928B), Android *<versión pendiente>* | Android | `…_Android.apk` 1.0.0 | 5, 6, 7 (solo el aviso de permiso), 8. **Sin evidencia:** 1, 2, 3 y 4 | Correcto en lo ejecutado; sin defectos observados | Fernando (dueño del equipo), 11-11-2026 |
+| 1 | Samsung Galaxy A56 5G (SM-A566E), Android 16 (API 36), One UI 8.5 | Android | `…_Android.apk` 1.0.0 | 1, 2 (sin red: sin evidencia), 3 (solo alta), 5, 6, 7 (solo el aviso de permiso), 8. **Sin evidencia:** 4 y el resto del 3 | Correcto en lo ejecutado; sin defectos observados | Jeanpierre, 11-11-2026 |
+| 2 | Samsung Galaxy S24 Ultra (SM-S928B), Android 16 (API 36), One UI 8.5 | Android | `…_Android.apk` 1.0.0 | 5, 6, 7 (solo el aviso de permiso), 8. **Sin evidencia:** 1, 2, 3 y 4 | Correcto en lo ejecutado; sin defectos observados | Fernando (dueño del equipo), 11-11-2026 |
 | 3 | (iOS — no ejecutado; ver `docs/ios-14.md`) | iOS | — | — | No ejecutado — limitación declarada | — |
 
 ## Recorrido de 8 pasos
