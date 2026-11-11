@@ -35,7 +35,7 @@ las pruebas de esta sesión y se ajusta la configuración de compilación.
 | Huella SHA-256 | `F8:C3:84:04:83:D9:29:C2:D5:86:7B:E4:85:15:B4:07:A8:76:A4:7E:C1:E5:D2:22:C3:51:D8:92:B4:B3:33:9B` (idéntica en el `.apk` con `apksigner` y en el `.aab` con `keytool -printcert -jarfile`) |
 | Validez | 11-11-2026 14:38 – 29-03-2054 |
 | Esquemas de firma (APK) | v2 true · v3 false (v1 false, v4 false) |
-| Copia del almacén | *pendiente: dónde se guardó la copia (sin ruta completa ni contraseñas)* |
+| Copia del almacén | Carpeta privada de Google Drive del titular (fuera de la laptop); no se comparte ni se versiona |
 | URL de PharmaSoft del build | `http://192.168.137.1:8080/api/v1/` (zona con cobertura de Windows) |
 | Minificación | Activada (R8). Ver la sección siguiente |
 
