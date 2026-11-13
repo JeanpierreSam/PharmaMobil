@@ -1,33 +1,41 @@
 # Matriz de pruebas en dispositivos reales
 
-Build: `Equipo12_ProyectoFinal_Android.apk` · 1.0.0 (1) · firmado (SHA-256 `<primeros 16 caracteres>…`).
+Build: `Equipo12_ProyectoFinal_Android.apk` · 1.0.0 (1) · firmado (SHA-256 `F8:C3:84:04:83:D9:29:C2…`).
 Servicio: PharmaSoft en el PC del equipo, zona con cobertura de Windows (`http://192.168.137.1:8080/api/v1/`).
+Fecha de las pruebas: 11-11-2026, entre las 15:25 y las 16:25.
 
-> Estado: **pendiente de ejecutar**. Ninguna fila tiene resultado todavía; se llena con lo que se observe en cada dispositivo, con su fecha real.
+> Se registran solo los pasos que tienen evidencia. En los demás figura «No se sacó evidencia».
 
 ## Dispositivos
 
 | N.º | Dispositivo | Plataforma | Build instalado | Pasos ejecutados | Resultado | Responsable y fecha |
 |---|---|---|---|---|---|---|
-| 1 | <Marca Modelo, Android X (API Y)> | Android | `…_Android.apk` 1.0.0 | 1–8 | <Correcto / Con observaciones (D-0x) / Fallido (D-0x)> | <Nombre>, <fecha> |
-| 2 | <Marca Modelo distinta, Android X> | Android | `…_Android.apk` 1.0.0 | 1–8 | <…> | <Nombre>, <fecha> |
-| 3 | (iOS — se completa en la GAA) | iOS | — | — | — | — |
+| 1 | Samsung Galaxy A56 5G (SM-A566E), Android 16 (API 36), One UI 8.5 | Android | `…_Android.apk` 1.0.0 | 1, 2 (sin red: sin evidencia), 3 (solo alta), 5, 6, 7 (solo el aviso de permiso), 8. **Sin evidencia:** 4 y el resto del 3 | Correcto en lo ejecutado; sin defectos observados | Jeanpierre, 11-11-2026 |
+| 2 | Samsung Galaxy S24 Ultra (SM-S928B), Android 16 (API 36), One UI 8.5 | Android | `…_Android.apk` 1.0.0 | 5, 6, 7 (solo el aviso de permiso), 8. **Sin evidencia:** 1, 2, 3 y 4 | Correcto en lo ejecutado; sin defectos observados | Fernando (dueño del equipo), 11-11-2026 |
+| 3 | Samsung Galaxy A12 (A127M, según el número de compilación), Android 13 (API 33), One UI Core 5.1 | Android | `…_Android.apk` 1.0.0 | 1, 2 (solo login correcto), 5, 6, 7 (permiso bloqueado), 8. **Sin evidencia:** 3 y 4 | Correcto en lo ejecutado; sin defectos observados | Julio (dueño del equipo), 11-11-2026 |
+| 4 | (iOS — no ejecutado; ver `docs/ios-14.md`) | iOS | — | — | No ejecutado — limitación declarada | — |
+
+El dispositivo 3 es el de menor versión de Android (13): cubre el permiso de notificaciones en ejecución que Android 13 introdujo.
 
 ## Recorrido de 8 pasos
 
-| N.º | Paso | Cómo provocarlo en PharmaMobil | Qué se observa |
-|---|---|---|---|
-| 1 | Instalación desde el archivo firmado | Instalar el `.apk` sin Android Studio | Instala; nombre «PharmaMobil» |
-| 2 | Login correcto e incorrecto | `admin` con clave mala → luego buena; después apagar la zona con cobertura y probar | «Usuario o contraseña incorrectos.» vs «Sin conexión con el servidor…» |
-| 3 | CRUD completo con un rechazo | Alta, edición, baja; alta con nombre repetido | El 409 aparece bajo el campo **Nombre** |
-| 4 | Operación sin privilegio | Entrar como `vendedor` | Acciones de escritura ocultas; la sesión no se cierra |
-| 5 | Modo avión | Modo avión → abrir Productos → crear uno | «Pendiente de envío» y «1 cambio por enviar» |
-| 6 | Recuperar la red | Quitar el modo avión, **sin** pulsar ⟳ | Sube solo (H7), sin duplicar |
-| 7 | Permiso: conceder, denegar, para siempre | Pestaña *Bajo Stock* → *Activar avisos* | Los tres estados; el tercero ofrece *Abrir Ajustes* |
-| 8 | Cerrar sesión y reabrir | Con un pendiente → *Cerrar sesión* → *Salir y descartar* → reabrir | Pide login; la lista ya no tiene datos del usuario anterior (H8) |
+| N.º | Paso | Cómo provocarlo en PharmaMobil | Qué se observa | A56 | S24 | A12 |
+|---|---|---|---|---|---|---|
+| 1 | Instalación desde el archivo firmado | Instalar el `.apk` sin Android Studio | Instala; nombre «PharmaMobil» | Correcto | No se sacó evidencia | Correcto (la app instalada abre en el login) |
+| 2 | Login correcto e incorrecto | `admin` con clave mala → luego buena; después apagar la zona con cobertura y probar | «Usuario o contraseña incorrectos.» vs «Sin conexión con el servidor…» | Correcto (clave mala y buena); sin red: no se sacó evidencia | No se sacó evidencia | Login correcto (pantalla de Inicio); clave mala y sin red: no se sacó evidencia |
+| 3 | CRUD completo con un rechazo | Alta, edición, baja; alta con nombre repetido | El 409 aparece bajo el campo **Nombre** | Solo el alta («Gingisona B Tabletas» registrado) | No se sacó evidencia | No se sacó evidencia |
+| 4 | Operación sin privilegio | Entrar como `vendedor` | Acciones de escritura ocultas; la sesión no se cierra | No se sacó evidencia | No se sacó evidencia | No se sacó evidencia |
+| 5 | Modo avión | Modo avión → abrir Productos → crear uno | «Pendiente de envío» y «1 cambio por enviar» | Correcto («prueba») | Correcto («Prueba amoniaco») | Correcto («prueba a12» y «A12 Sin Internet»: «quedó pendiente de envío») |
+| 6 | Recuperar la red | Quitar el modo avión, **sin** pulsar ⟳ | Sube solo (H7), sin duplicar | Se sincronizó pulsando ⟳ (no se probó la sincronización automática sin tocarlo) | Aviso «Sin conexión: mostrando datos guardados» y luego sincronizado, pulsando ⟳ | «prueba a12» pasó a «Activo»; no se confirmó si se pulsó ⟳ |
+| 7 | Permiso: conceder, denegar, para siempre | Pestaña *Bajo Stock* → *Activar avisos* | Los tres estados; el tercero ofrece *Abrir Ajustes* | Solo se vio el aviso del sistema; sin resultado | Solo se vio el aviso del sistema; sin resultado | Estado bloqueado: «Los avisos están bloqueados… Abrir Ajustes» |
+| 8 | Cerrar sesión y reabrir | Con un pendiente → *Cerrar sesión* → *Salir y descartar* → reabrir | Pide login; la lista ya no tiene datos del usuario anterior (H8) | Correcto: el pendiente «prueba 2» no volvió | Correcto: «prueba salir pendiente» no volvió | Correcto: diálogo «Cambios sin enviar», login al reabrir y «A12 Sin Internet» ya no está |
+
+## Evidencia
+
+Capturas guardadas fuera del repositorio, en `Unidad 3/S14/Capturas pruebas A56 Jeanpierre`, `Capturas pruebas S24 Fernando` y `Capturas pruebas A12 Julio`. Las capturas de «Acerca del teléfono» de los dos primeros muestran IMEI, serie y número de teléfono: no se incluyen en el PDF sin recortarlas.
 
 ## Defectos
 
 | Id | Dispositivo y versión | Pasos para reproducir | Esperado | Obtenido | Severidad | Estado |
 |---|---|---|---|---|---|---|
-| — | *Ninguno registrado todavía: no se ha probado en dispositivos reales.* | | | | | |
+| — | *Ninguno observado en los pasos ejecutados.* | | | | | |
